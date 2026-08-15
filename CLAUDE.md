@@ -8,9 +8,26 @@ Visa Application System (VAS) — a government/embassy platform for visa intake,
 payment, appointment booking, officer review, and decisions, with full audit and legal defensibility as
 first-class requirements. Applicant, agent, officer, and admin portals; public tracking; Stripe payments.
 
-**Current state: pre-code.** The repository contains only the specification documents in `docs/`. No Laravel
-application has been scaffolded yet (no `composer.json`, no git history). The first real work on this project
-is Stage 0/1 of `docs/Implementation_plan.md`.
+**Current state: Stage 1 S1.1 complete** (`docs/Implementation_plan.md` §4). Laravel 12 is scaffolded with the
+full locked dependency set (adjusted for Hostinger single-host — see Architecture below), Pest 4/Pint/Larastan
+level 6 all installed and passing, Tailwind 3.4 wired to the Content Guidelines tokens, Sentry installed and
+wired into exception handling. Pushed to `genesis12tech/visa_platform` on `main`. No domain models, migrations,
+policies, or the six approved services exist yet — that's Stage 2 (Foundation).
+
+**Known follow-ups from the scaffold, not yet resolved:**
+- Local dev database is **SQLite**, a temporary stand-in only. `Backend_schema.md`'s triggers, generated
+  columns, and `CHECK` constraints are MySQL-8-specific and won't work correctly against SQLite — this must
+  move to real MySQL 8 before Stage 2 migration work starts (either the Hostinger DB, if remote access is
+  enabled for the dev machine's IP, or a local MySQL 8 install).
+- This machine's Herd-managed PHP 8.3 (and 8.2) binaries are broken (`dyld` symbol error) — only the default
+  PHP 8.4 works. Composer is pinned to resolve as if PHP 8.3 (`config.platform.php` in `composer.json`) so
+  package versions are correct, but `artisan`/`composer` commands actually execute under 8.4 locally until
+  Herd's PHP 8.3 build is repaired (Herd → PHP → 8.3 → Reinstall, on the user's side, not touched here).
+- `SENTRY_LARAVEL_DSN`, `STRIPE_KEY`/`STRIPE_SECRET`/`STRIPE_WEBHOOK_SECRET`, and `AWS_ACCESS_KEY_ID`/
+  `AWS_SECRET_ACCESS_KEY`/`AWS_BUCKET` are all blank in `.env` — no Sentry project, Stripe test keys, or AWS
+  account exist yet. `FILESYSTEM_DISK` stays `local` until AWS S3 is wired in.
+- Fonts (Public Sans, Source Serif 4, IBM Plex Mono) are referenced in `tokens.css` with system-font fallbacks
+  but not yet self-hosted as actual font files — deferred to when real UI components get built (Stage 2/3).
 
 ## Read the docs before any task — and don't contradict them
 
@@ -152,20 +169,24 @@ Once code exists, these must never go red without work stopping to fix them firs
 4. Booking concurrency — 50 concurrent bookings against a capacity-1 slot yield exactly 1 success
 5. Guard parity — UI blockers equal domain guard output, across a state matrix
 
-## Commands (once the Laravel app is scaffolded)
-
-Per `docs/Tech_stack.md` §12 and `docs/Implementation_plan.md` §16.1 — not yet applicable until Stage 1:
+## Commands
 
 ```bash
-composer install && npm install         # install per the locked composer.json/package.json in Tech Stack §4/§6
-composer show --format=json > docs/resolved-versions.json   # resolution pass, run before first commit
+composer install && npm install         # install locked dependencies (composer.json/package.json)
 ./vendor/bin/pest                       # test suite (Pest 4.x — NOT 5.x, see below)
 ./vendor/bin/pest --filter=SomeTest     # run a single test
-./vendor/bin/pint                       # code style
-./vendor/bin/phpstan analyse            # Larastan, level 6
-php artisan horizon                     # worker host only — queue processing
-php artisan schedule:run                # worker host only — scheduler, under a distributed lock
+./vendor/bin/pint                       # code style — auto-fixes; use --test to check without fixing
+./vendor/bin/phpstan analyse            # Larastan, level 6 (config: phpstan.neon)
+npm run build                           # compile Tailwind/Vite assets
+npm run dev                             # Vite dev server with HMR
+php artisan queue:work --stop-when-empty  # drain the database queue — cron-triggered every minute in
+                                           # production (this project has no Horizon/Redis; see Architecture)
+php artisan schedule:run                # scheduler — cron-triggered every minute in production
 ```
+
+No `php artisan serve` alias is documented here deliberately — this project has no Docker/Sail setup (see
+Architecture), so use `php artisan serve` directly or Herd's own site serving once a PHP 8.3 build is repaired
+(see "Known follow-ups" above).
 
 **Pest is pinned to 4.x, never 5.x** — Pest 5 requires PHP `^8.4` and Laravel `^13.23`, both excluded by the
 locked PHP 8.3 / Laravel 12 stack (Tech Stack §3.3). Don't "helpfully" upgrade it.
