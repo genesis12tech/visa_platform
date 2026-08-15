@@ -1,0 +1,77 @@
+/* resources/css/print.css — Content_guidelines.md §3.2, verbatim */
+
+@media print {
+  /* ── Reset to ink on paper ─────────────────────────── */
+  :root {
+    --surface: #FFFFFF;
+    --surface-sunken: #FFFFFF;
+    --ink: #000000;
+    --ink-muted: #333333;
+    --ink-subtle: #555555;
+    --brand: #000000;
+  }
+  * {
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #000 !important;
+  }
+
+  /* ── Remove interactive chrome ─────────────────────── */
+  .bottom-tab-bar, .top-nav, .sidebar, .breadcrumb,
+  .btn, .toast, .skeleton, .modal-backdrop,
+  [data-print="hide"] {
+    display: none !important;
+  }
+
+  /* ── Expand collapsed content ──────────────────────── */
+  [hidden][data-print="expand"],
+  details, .tab-panel, .accordion-panel {
+    display: block !important;
+    visibility: visible !important;
+    height: auto !important;
+  }
+  .tab-panel::before {
+    content: attr(data-tab-label);
+    display: block;
+    font-family: var(--font-heading);
+    font-size: 14pt;
+    font-weight: 600;
+    margin: 12pt 0 6pt;
+    border-bottom: 1pt solid #000;
+  }
+
+  /* ── Document identity on every page ───────────────── */
+  @page {
+    margin: 20mm 18mm;
+    size: A4;
+  }
+  .print-header {
+    display: block !important;
+    position: running(header);
+  }
+
+  /* ── Typography for paper ──────────────────────────── */
+  body { font-size: 11pt; line-height: 1.4; }
+  h1 { font-size: 18pt; }
+  h2 { font-size: 14pt; }
+  h3 { font-size: 12pt; }
+
+  /* ── Page-break discipline ─────────────────────────── */
+  h1, h2, h3 { break-after: avoid; }
+  .card, .field-group, tr, .timeline-item { break-inside: avoid; }
+  .page-break { break-before: page; }
+  table { break-inside: auto; }
+  thead { display: table-header-group; }  /* repeat headers across pages */
+
+  /* ── Reveal link destinations ──────────────────────── */
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 9pt;
+    color: #555 !important;
+  }
+  a[href^="#"]::after, a[href^="mailto"]::after { content: ""; }
+
+  /* ── Status without colour ─────────────────────────── */
+  .badge::before { content: "[ "; }
+  .badge::after  { content: " ]"; }
+}

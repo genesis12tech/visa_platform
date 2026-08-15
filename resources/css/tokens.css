@@ -1,0 +1,121 @@
+/* resources/css/tokens.css — Content_guidelines.md §2, prescriptive. Do not add ad-hoc values elsewhere. */
+
+:root {
+  /* ── Surfaces ───────────────────────────────────────── */
+  --surface:          #FFFFFF;
+  --surface-sunken:   #F4F6F8;  /* page background behind cards */
+  --surface-raised:   #FFFFFF;  /* cards, modals */
+  --surface-overlay:  rgb(20 24 31 / 0.55);  /* modal backdrop */
+
+  /* ── Ink (text) ─────────────────────────────────────── */
+  --ink:              #14181F;  /* 15.8:1 on --surface — body */
+  --ink-muted:        #4A5462;  /*  8.1:1 — secondary text   */
+  --ink-subtle:       #6B7684;  /*  4.9:1 — metadata only    */
+  --ink-inverse:      #FFFFFF;  /* on --brand: 8.9:1         */
+
+  /* ── Borders ────────────────────────────────────────── */
+  --border:           #D3D9E0;  /* 1.6:1 — decorative dividers */
+  --border-strong:    #9AA5B1;  /* 3.0:1 — input borders, meets non-text minimum */
+  --border-ink:       #14181F;  /* high-emphasis outlines */
+
+  /* ── Brand ──────────────────────────────────────────── */
+  --brand:            #0B4F71;  /* 8.9:1 on white */
+  --brand-hover:      #073B55;
+  --brand-active:     #052C41;
+  --brand-subtle:     #E8F1F6;  /* --ink on this: 14.2:1 */
+  --brand-border:     #7FA9C0;
+
+  /* ── Status ─────────────────────────────────────────── */
+  --success:          #1D6F42;  /* 5.6:1 on white */
+  --success-subtle:   #E7F3EC;
+  --success-border:   #8CC0A2;
+
+  --warning:          #8A5A00;  /* 5.4:1 — dark amber, NOT light amber */
+  --warning-subtle:   #FDF3E2;
+  --warning-border:   #D9AE63;
+
+  --danger:           #A0212B;  /* 6.9:1 on white */
+  --danger-hover:     #7E1922;
+  --danger-subtle:    #FBEAEB;
+  --danger-border:    #D98E93;
+
+  --info:             #0B4F71;
+  --info-subtle:      #E8F1F6;
+  --info-border:      #7FA9C0;
+
+  /* ── Focus ──────────────────────────────────────────── */
+  --focus-ring:       #B85C00;  /* deliberately non-brand: never confused
+                                   with a selected or active state */
+  --focus-ring-offset: #FFFFFF;
+
+  /* ── Disabled ───────────────────────────────────────── */
+  --disabled-bg:      #EDF0F3;
+  --disabled-ink:     #6B7684;  /* 4.9:1 — disabled text stays readable
+                                   because it must be read to be understood */
+  --disabled-border:  #C3CBD4;
+
+  /* ── Type families ──────────────────────────────────── */
+  --font-heading: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-body:    "Public Sans", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono:    "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* ── Type scale — 1.200 minor third, 16px base ─────── */
+  --text-xs:   0.75rem;   /* 12px — metadata only, never body */
+  --text-sm:   0.875rem;  /* 14px — secondary */
+  --text-base: 1rem;      /* 16px — body; never smaller for form input */
+  --text-lg:   1.125rem;
+  --text-xl:   1.375rem;
+  --text-2xl:  1.75rem;
+  --text-3xl:  2.25rem;
+
+  /* ── Spacing — 4px base ─────────────────────────────── */
+  --space-1:  0.25rem;  /*  4px */
+  --space-2:  0.5rem;   /*  8px */
+  --space-3:  0.75rem;  /* 12px */
+  --space-4:  1rem;     /* 16px */
+  --space-5:  1.25rem;  /* 20px */
+  --space-6:  1.5rem;   /* 24px */
+  --space-8:  2rem;     /* 32px */
+  --space-10: 2.5rem;   /* 40px */
+  --space-12: 3rem;     /* 48px */
+  --space-16: 4rem;     /* 64px */
+  --space-20: 5rem;     /* 80px */
+
+  /* ── Containers ─────────────────────────────────────── */
+  --content-max: 44rem;   /* 704px — applicant single-column reading measure */
+  --panel-max:   90rem;   /* 1440px — officer/admin dense layouts */
+
+  /* ── Borders, radius, elevation ─────────────────────── */
+  --radius-sm:   3px;   /* badges, tags, inline chips */
+  --radius-md:   6px;   /* buttons, inputs, small cards */
+  --radius-lg:  10px;   /* cards, modals, panels */
+  --radius-full: 9999px; /* avatars and dot indicators only */
+
+  --border-width:        1px;
+  --border-width-strong: 2px;  /* focus, selected, error emphasis */
+
+  --shadow-1: 0 1px 2px rgb(20 24 31 / 0.06);   /* resting cards */
+  --shadow-2: 0 2px 8px rgb(20 24 31 / 0.08);   /* raised, hover */
+  --shadow-modal: 0 16px 48px rgb(20 24 31 / 0.18);
+
+  /* ── Motion ─────────────────────────────────────────── */
+  --duration-instant: 0ms;
+  --duration-fast:  120ms;   /* hover, focus, colour changes */
+  --duration-base:  200ms;   /* disclosure, tab change */
+  --duration-slow:  320ms;   /* modal enter/exit only */
+  --ease-standard: cubic-bezier(0.2, 0, 0.2, 1);
+  --ease-exit:     cubic-bezier(0.4, 0, 1, 1);
+}
+
+/* prefers-contrast: more — §3.1. Redefines tokens only; component-level
+   high-contrast rules (forced-colors, borders) live in base.css. */
+@media (prefers-contrast: more) {
+  :root {
+    --ink-muted:     #2B333D;  /* 11.6:1 — was 8.1:1 */
+    --ink-subtle:    #3D4753;  /*  9.4:1 — was 4.9:1 */
+    --border:        #6B7684;  /* was #D3D9E0 */
+    --border-strong: #4A5462;
+    --disabled-ink:  #4A5462;
+    --border-width:  2px;
+  }
+}

@@ -1,0 +1,92 @@
+{
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "genesis12tech/visa-platform",
+    "type": "project",
+    "description": "Visa Application System — applicant, agent, officer, and admin portals for consular visa intake, review, payment, and decision.",
+    "keywords": ["laravel", "visa", "consular"],
+    "license": "proprietary",
+    "require": {
+        "php": "8.3.*",
+        "laravel/framework": "12.66.0",
+        "livewire/livewire": "3.8.4",
+        "laravel/sanctum": "4.*",
+        "laravel/tinker": "2.*",
+
+        "spatie/laravel-permission": "6.*",
+        "spatie/laravel-activitylog": "4.*",
+        "spatie/laravel-data": "4.*",
+
+        "rappasoft/laravel-livewire-tables": "3.*",
+        "barryvdh/laravel-dompdf": "3.*",
+        "maatwebsite/excel": "3.1.*",
+        "stripe/stripe-php": "16.*",
+        "league/flysystem-aws-s3-v3": "3.*",
+        "intervention/image": "3.*",
+        "nesbot/carbon": "3.*",
+        "sentry/sentry-laravel": "4.*",
+        "pragmarx/google2fa-laravel": "2.*",
+        "bacon/bacon-qr-code": "3.*",
+        "propaganistas/laravel-phone": "5.*",
+        "spatie/laravel-backup": "9.*"
+    },
+    "require-dev": {
+        "pestphp/pest": "4.*",
+        "pestphp/pest-plugin-laravel": "4.*",
+        "laravel/pint": "1.*",
+        "larastan/larastan": "3.*",
+        "nunomaduro/collision": "8.*",
+        "fakerphp/faker": "1.*",
+        "mockery/mockery": "1.*",
+        "barryvdh/laravel-ide-helper": "3.*",
+        "laravel/pail": "1.*"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php artisan package:discover --ansi"
+        ],
+        "post-update-cmd": [
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+        ],
+        "post-root-package-install": [
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+        ],
+        "post-create-project-cmd": [
+            "@php artisan key:generate --ansi"
+        ],
+        "pre-package-uninstall": [
+            "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "dont-discover": []
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "platform": {
+            "php": "8.3.0"
+        },
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "php-http/discovery": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

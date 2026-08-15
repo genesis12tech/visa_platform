@@ -1,0 +1,110 @@
+/* resources/css/base.css — element resets, focus, typography defaults (Content_guidelines.md §2–§3)
+   Wrapped in Tailwind's `base` layer so these resets win over Tailwind's own
+   preflight regardless of source order — imported before `@tailwind base` in
+   app.css, but @layer reorders it into the correct cascade position. */
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--surface-sunken);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    line-height: 1.6;
+    text-align: left; /* never justified — see Content_guidelines.md §2.3 */
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    margin: 0;
+  }
+
+  /* No light/thin weights anywhere — they fail on low-quality mobile displays. */
+  b, strong { font-weight: 600; }
+
+  img, svg, video { display: block; max-width: 100%; }
+
+  /* Focus visible on every interactive element — never `outline: none`
+     without this replacement (Content_guidelines.md §9 A-2). */
+  :focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  /* Skip link — first focusable element on every page (§5.20). */
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 100;
+    background: var(--surface);
+    color: var(--brand);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    border: var(--border-width-strong) solid var(--brand);
+  }
+  .skip-link:focus-visible {
+    left: var(--space-4);
+    top: var(--space-4);
+  }
+}
+
+/* Reduced motion — §2.6 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Windows High Contrast / forced colours — §3.1. Component classes referenced
+   here (.btn, .badge, .alert, .card, .input) are defined as they land in the
+   Content Guidelines §5 component library through Stage 2+; these rules are
+   in place ahead of that so no component ships without them. */
+@media (forced-colors: active) {
+  .btn, .badge, .alert, .card, .input {
+    border: 1px solid;
+  }
+
+  [aria-selected="true"],
+  [aria-current="page"],
+  .is-active {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  [disabled], [aria-disabled="true"] {
+    color: GrayText;
+    border-color: GrayText;
+  }
+
+  .shadow-1, .shadow-2, .shadow-modal {
+    box-shadow: none;
+    border: 1px solid CanvasText;
+  }
+
+  :focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+  }
+
+  .status-icon { forced-color-adjust: none; }
+}
+
+@media (prefers-contrast: more) {
+  .btn, .input, .card { border-width: 2px; }
+  :focus-visible { outline-width: 4px; }
+}
