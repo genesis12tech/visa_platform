@@ -8,26 +8,39 @@ Visa Application System (VAS) — a government/embassy platform for visa intake,
 payment, appointment booking, officer review, and decisions, with full audit and legal defensibility as
 first-class requirements. Applicant, agent, officer, and admin portals; public tracking; Stripe payments.
 
-**Current state: Stage 1 S1.1 complete** (`docs/Implementation_plan.md` §4). Laravel 12 is scaffolded with the
-full locked dependency set (adjusted for Hostinger single-host — see Architecture below), Pest 4/Pint/Larastan
-level 6 all installed and passing, Tailwind 3.4 wired to the Content Guidelines tokens, Sentry installed and
-wired into exception handling. Pushed to `genesis12tech/visa_platform` on `main`. No domain models, migrations,
-policies, or the six approved services exist yet — that's Stage 2 (Foundation).
+**Current state: Stage 1 complete and deployed** (`docs/Implementation_plan.md` §4). Laravel 12 is scaffolded
+with the full locked dependency set (adjusted for Hostinger single-host — see Architecture below), Pest
+4/Pint/Larastan level 6 all installed and passing, Tailwind 3.4 wired to the Content Guidelines tokens, Sentry
+installed and wired into exception handling. **Live at `https://visa.geninnovations.net`**, deployed to
+Hostinger and verified against the real production MySQL database — see `docs/Deployment_runbook.md` for the
+full setup, including a deployment-topology detail worth knowing before touching the server: the app lives at
+`~/visa_platform_app`, but the web-facing directory is a separate fixed path with a hand-written `index.php`
+pointing back at it (Hostinger's subdomain document-root override didn't work as expected — full explanation
+in the runbook). The Stage 1 S1.4 skeleton test (job → queue → MySQL → read back) passed in the deployed
+environment. No domain models, migrations, policies, or the six approved services exist yet — that's Stage 2
+(Foundation).
 
-**Known follow-ups from the scaffold, not yet resolved:**
+**Known follow-ups, not yet resolved:**
 - Local dev database is **SQLite**, a temporary stand-in only. `Backend_schema.md`'s triggers, generated
   columns, and `CHECK` constraints are MySQL-8-specific and won't work correctly against SQLite — this must
-  move to real MySQL 8 before Stage 2 migration work starts (either the Hostinger DB, if remote access is
-  enabled for the dev machine's IP, or a local MySQL 8 install).
+  move to real MySQL 8 before Stage 2 migration work starts. The production Hostinger MySQL is confirmed
+  reachable (used for the live deploy); local dev could point at it too, or use a local MySQL 8 install.
 - This machine's Herd-managed PHP 8.3 (and 8.2) binaries are broken (`dyld` symbol error) — only the default
   PHP 8.4 works. Composer is pinned to resolve as if PHP 8.3 (`config.platform.php` in `composer.json`) so
   package versions are correct, but `artisan`/`composer` commands actually execute under 8.4 locally until
-  Herd's PHP 8.3 build is repaired (Herd → PHP → 8.3 → Reinstall, on the user's side, not touched here).
+  Herd's PHP 8.3 build is repaired (Herd → PHP → 8.3 → Reinstall, on the user's side, not touched here). The
+  Hostinger server's PHP is genuinely 8.3.30, so this only affects local development fidelity, not production.
 - `SENTRY_LARAVEL_DSN`, `STRIPE_KEY`/`STRIPE_SECRET`/`STRIPE_WEBHOOK_SECRET`, and `AWS_ACCESS_KEY_ID`/
-  `AWS_SECRET_ACCESS_KEY`/`AWS_BUCKET` are all blank in `.env` — no Sentry project, Stripe test keys, or AWS
-  account exist yet. `FILESYSTEM_DISK` stays `local` until AWS S3 is wired in.
+  `AWS_SECRET_ACCESS_KEY`/`AWS_BUCKET` are all blank in both local and production `.env` — no Sentry project,
+  Stripe test keys, or AWS account exist yet. `FILESYSTEM_DISK` stays `local` until AWS S3 is wired in.
 - Fonts (Public Sans, Source Serif 4, IBM Plex Mono) are referenced in `tokens.css` with system-font fallbacks
   but not yet self-hosted as actual font files — deferred to when real UI components get built (Stage 2/3).
+- Remote MySQL access on the production database is currently open to any host (`%`) — a deliberate, temporary
+  choice since it's explicitly the test database with no real applicant data. **Must be scoped to specific
+  IPs before anything production-like touches it.**
+- `storage:link` is not run in production — `exec()` is disabled on the Hostinger PHP environment, and this
+  project doesn't need it anyway (FR-DM-07/BR-09: documents are never served via the public-disk symlink
+  pattern, only authorized controller streams with signed URLs).
 
 ## Read the docs before any task — and don't contradict them
 
