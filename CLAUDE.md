@@ -8,8 +8,14 @@ Visa Application System (VAS) — a government/embassy platform for visa intake,
 payment, appointment booking, officer review, and decisions, with full audit and legal defensibility as
 first-class requirements. Applicant, agent, officer, and admin portals; public tracking; Stripe payments.
 
-**Current state: Stage 1 complete and deployed, Stage 2 (Foundation) in progress** (`docs/Implementation_plan.md`
-§4–§5). Laravel 12 is scaffolded with the full locked dependency set (adjusted for Hostinger single-host — see
+**Current state: Stage 1 complete and deployed, Stage 2 (Foundation) in progress — S2.1–S2.3 done**
+(`docs/Implementation_plan.md` §4–§5). All 9 reference-data tables exist with tested models (currencies,
+countries, visa_types, visa_fees, document_types, rejection_reasons, service_locations, holidays,
+visa_type_document_requirements), seeded via `ReferenceDataSeeder`. `FeeResolver` — the first of the six
+approved services — is built and tested: specificity precedence (nationality-specific beats general),
+inclusive `valid_from`/exclusive `valid_until` boundaries, and `AmbiguousFeeRuleException` /
+`FeeRuleNotFoundException` rather than ever silently picking a rule. 92 tests passing, TDD throughout (every
+test written and watched fail before the code that makes it pass existed). Laravel 12 is scaffolded with the full locked dependency set (adjusted for Hostinger single-host — see
 Architecture below), Pest 4/Pint/Larastan level 6 all installed and passing, Tailwind 3.4 wired to the Content
 Guidelines tokens, Sentry installed and wired into exception handling. **Live at
 `https://visa.geninnovations.net`**, deployed to Hostinger and verified against the real production database —
