@@ -51,16 +51,25 @@ $app->handleRequest(Request::capture());
 
 If `visa_platform_app` is ever moved or renamed, this is the one file that needs its `$appPath` updated.
 
-## 3. Cron jobs (hPanel → Advanced → Cron Jobs)
+## 3. Cron jobs (hPanel → Advanced → Cron Jobs) — configured and verified
 
-No `crontab` access over SSH on this host — hPanel-managed only. Two entries, both every minute, since this project has no Horizon/Redis (database-backed queue instead — see CLAUDE.md):
+No `crontab` access over SSH on this host — hPanel-managed only, via a form (PHP mode) rather than raw crontab
+syntax. The command field only accepts the part *after* a fixed prefix (`/usr/bin/php /home/u508116592/` on
+this account), and — worth knowing, since it wasn't obvious the first time — **the Minute/Hour/Day/Month/
+Weekday selectors do not default to "every"/`*` on their own; each one must be explicitly set**, or use the
+"Common Settings" dropdown's "Every Minute" preset if present. Two jobs, both every minute:
 
-```
-* * * * * cd /home/u508116592/visa_platform_app && php artisan schedule:run >> /dev/null 2>&1
-* * * * * cd /home/u508116592/visa_platform_app && php artisan queue:work --stop-when-empty --max-time=50 >> /dev/null 2>&1
-```
+| | Command (after the fixed prefix) |
+|---|---|
+| Scheduler | `visa_platform_app/artisan schedule:run` |
+| Queue worker | `visa_platform_app/artisan queue:work --stop-when-empty --max-time=50` |
 
 `--max-time=50` keeps the queue worker from overlapping into the next minute's cron tick.
+
+**Verified 2026-08-15**: dispatched a job from a real file (see the closure-serialization note in §8), confirmed
+it sat unprocessed for several minutes while the cron config was wrong (both jobs had accidentally saved as
+`schedule:run` with non-`*` schedules — one hourly, one restricted to Monday/January/1am), then re-verified
+clean after fixing it: job processed within 15 seconds of the next minute tick, fully unattended.
 
 ## 4. Node/npm on the server — deliberately not relied on
 
