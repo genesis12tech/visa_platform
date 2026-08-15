@@ -23,8 +23,10 @@
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
-        <env name="DB_CONNECTION" value="sqlite"/>
-        <env name="DB_DATABASE" value=":memory:"/>
+        <!-- Real Hostinger MariaDB (DB_HOST/DATABASE/USERNAME/PASSWORD from .env) — the
+             schema relies on MySQL/MariaDB-specific triggers, generated columns, and
+             CHECK constraints that SQLite cannot run at all. -->
+        <env name="DB_CONNECTION" value="mysql"/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
