@@ -107,6 +107,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Blind Index Pepper
+    |--------------------------------------------------------------------------
+    |
+    | Backend_schema.md §13.2 — the pepper for the passport-number blind index
+    | (applicant_profiles.passport_number_hash). Deliberately separate from
+    | APP_KEY: a database-only compromise must not be enough to build a
+    | rainbow table against this hash. Never commit a real value.
+    |
+    */
+
+    'blind_index_key' => env('BLIND_INDEX_KEY'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Maintenance Mode Driver
     |--------------------------------------------------------------------------
     |

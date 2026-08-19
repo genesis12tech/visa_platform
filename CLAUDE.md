@@ -8,14 +8,17 @@ Visa Application System (VAS) — a government/embassy platform for visa intake,
 payment, appointment booking, officer review, and decisions, with full audit and legal defensibility as
 first-class requirements. Applicant, agent, officer, and admin portals; public tracking; Stripe payments.
 
-**Current state: Stage 1 complete and deployed, Stage 2 (Foundation) in progress — S2.1–S2.3 done**
+**Current state: Stage 1 complete and deployed, Stage 2 (Foundation) in progress — S2.1–S2.4 done**
 (`docs/Implementation_plan.md` §4–§5). All 9 reference-data tables exist with tested models (currencies,
 countries, visa_types, visa_fees, document_types, rejection_reasons, service_locations, holidays,
 visa_type_document_requirements), seeded via `ReferenceDataSeeder`. `FeeResolver` — the first of the six
 approved services — is built and tested: specificity precedence (nationality-specific beats general),
 inclusive `valid_from`/exclusive `valid_until` boundaries, and `AmbiguousFeeRuleException` /
-`FeeRuleNotFoundException` rather than ever silently picking a rule. 92 tests passing, TDD throughout (every
-test written and watched fail before the code that makes it pass existed). Laravel 12 is scaffolded with the full locked dependency set (adjusted for Hostinger single-host — see
+`FeeRuleNotFoundException` rather than ever silently picking a rule. `users` (status/type/suspension CHECK
+constraints, soft deletes, self-referencing `suspendedBy`) and `applicant_profiles` (passport number stored via
+Laravel's `encrypted` cast, paired with a peppered SHA-256 blind index for duplicate detection per
+Backend_schema.md §13.2) are both built and tested. 110 tests passing, TDD throughout (every test written and
+watched fail before the code that makes it pass existed). Laravel 12 is scaffolded with the full locked dependency set (adjusted for Hostinger single-host — see
 Architecture below), Pest 4/Pint/Larastan level 6 all installed and passing, Tailwind 3.4 wired to the Content
 Guidelines tokens, Sentry installed and wired into exception handling. **Live at
 `https://visa.geninnovations.net`**, deployed to Hostinger and verified against the real production database —
@@ -53,8 +56,12 @@ TDD's red-green loop — blocked once already by this machine's Homebrew refusin
 - Fonts (Public Sans, Source Serif 4, IBM Plex Mono) are referenced in `tokens.css` with system-font fallbacks
   but not yet self-hosted as actual font files — deferred to when real UI components get built (Stage 2/3).
 - Remote MySQL access on the production database is currently open to any host (`%`) — a deliberate, temporary
-  choice since it's explicitly the test database with no real applicant data. **Must be scoped to specific
-  IPs before anything production-like touches it.**
+  choice since it's explicitly the test database with no real applicant data, and local dev's public IP is
+  dynamic (observed changing mid-session). **Must be scoped to specific IPs before anything production-like
+  touches it.** Note: this wildcard entry was believed set from earlier in the project but had in fact never
+  been saved in hPanel — confirmed and actually created 2026-08-20 (hPanel → Databases → Remote MySQL →
+  "Any Host" checkbox) after several access-denied failures traced it back. If remote DB access ever starts
+  failing again, check this setting first before assuming an IP/network issue.
 - `storage:link` is not run in production — `exec()` is disabled on the Hostinger PHP environment, and this
   project doesn't need it anyway (FR-DM-07/BR-09: documents are never served via the public-disk symlink
   pattern, only authorized controller streams with signed URLs).
