@@ -34,7 +34,7 @@ test('the currency code must be unique', function () {
 
 test('minor_unit_exponent cannot exceed 4', function () {
     Currency::query()->create(['code' => 'ABC', 'name' => 'Test', 'symbol' => 'A', 'minor_unit_exponent' => 5]);
-})->throws(QueryException::class);
+})->throws(QueryException::class)->skip(fn () => ! databaseEnforcesCheckConstraints(), 'CHECK constraints are not enforced on this engine');
 
 test('a currency has no public ulid — reference tables are never addressed publicly', function () {
     $currency = Currency::query()->create(['code' => 'GBP', 'name' => 'Pound Sterling', 'symbol' => '£', 'minor_unit_exponent' => 2]);

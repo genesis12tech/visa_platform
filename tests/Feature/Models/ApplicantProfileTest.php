@@ -107,7 +107,7 @@ test('passport_expires_at must be after passport_issued_at when both are set', f
         'passport_issued_at' => '2026-01-01',
         'passport_expires_at' => '2025-01-01',
     ]);
-})->throws(QueryException::class);
+})->throws(QueryException::class)->skip(fn () => ! databaseEnforcesCheckConstraints(), 'CHECK constraints are not enforced on this engine');
 
 test('a profile belongs to its nationality country', function () {
     $user = makeApplicantUser();

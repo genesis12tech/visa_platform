@@ -40,18 +40,18 @@ test('email must be unique', function () {
 
 test('status must be one of pending, active, or suspended', function () {
     User::query()->create(['name' => 'A', 'email' => 'a@example.com', 'password' => 'x', 'status' => 'bogus']);
-})->throws(QueryException::class);
+})->throws(QueryException::class)->skip(fn () => ! databaseEnforcesCheckConstraints(), 'CHECK constraints are not enforced on this engine');
 
 test('user_type must be one of applicant, agent, or staff', function () {
     User::query()->create(['name' => 'A', 'email' => 'a@example.com', 'password' => 'x', 'user_type' => 'bogus']);
-})->throws(QueryException::class);
+})->throws(QueryException::class)->skip(fn () => ! databaseEnforcesCheckConstraints(), 'CHECK constraints are not enforced on this engine');
 
 test('a suspended user requires both suspended_at and a suspension_reason', function () {
     User::query()->create([
         'name' => 'A', 'email' => 'a@example.com', 'password' => 'x',
         'status' => 'suspended',
     ]);
-})->throws(QueryException::class);
+})->throws(QueryException::class)->skip(fn () => ! databaseEnforcesCheckConstraints(), 'CHECK constraints are not enforced on this engine');
 
 test('a suspended user with both suspended_at and a reason is valid', function () {
     $user = User::query()->create([

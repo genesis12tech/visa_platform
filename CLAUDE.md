@@ -45,14 +45,23 @@ column partial-unique-index emulation pattern, `SIGNAL SQLSTATE` triggers, and b
 compatible (JSON_EXTRACT etc. all work), just without MySQL 8's binary storage optimization underneath. Treat
 this as the authoritative engine going forward, not an aspiration to reconcile back to literal MySQL 8.
 
-**Local dev and the Pest test suite both point at the real Hostinger database** (`u508116592_visa_db` —
-credentials in `DataCredential.txt`), not SQLite — SQLite can't run the triggers, generated columns, or even
-some collations (`ascii_bin`) this schema depends on, and that gap became a real blocker rather than a
-theoretical one once actual migrations started. `RefreshDatabase` wraps each test in a rolled-back transaction
-so this doesn't accumulate junk in the shared database. Trade-off worth knowing: each Feature test now costs
-3–6 seconds in network round-trips, so the suite is noticeably slower than a local DB would be (~1s → ~50s+ as
-of this writing). Revisit with a local MySQL/MariaDB install if this becomes painful enough to slow down
-TDD's red-green loop — blocked once already by this machine's Homebrew refusing to fully support macOS 12.
+**As of 2026-08-20, local dev and the Pest test suite point at a local MAMP Pro MySQL instance**
+(`visa_platform_local` / `visa_app`, `127.0.0.1:3306`), not the Hostinger database. History: Stage 1–S2.5 ran
+against the real Hostinger database directly (`u508116592_visa_db`) since SQLite can't run the triggers,
+generated columns, or `ascii_bin` collation this schema depends on. That worked but cost 3–6s/test in network
+round-trips (~50s+ suite runtime), and Hostinger's Remote MySQL allowlist repeatedly became unreliable
+mid-session (access denied from a previously-working IP, `.env`'s `DB_HOST` drifting between `srv683` and
+`srv1331` — never fully root-caused). Decision: **stop fighting remote DB access and run locally for the rest
+of this project; redeploy to Hostinger only once the project is otherwise complete.** Suite runtime dropped to
+~34s.
+- **Known gap, accepted deliberately:** this machine's MAMP Pro install only has **MySQL 5.7.39** available (no
+  8.x/MariaDB bundle) — `CHECK` constraints parse but are **not enforced** below MySQL 8.0.16. Tests that
+  assert a `CHECK` violation throws `QueryException` use a shared Pest helper,
+  `databaseEnforcesCheckConstraints()` (`tests/Pest.php`), and `->skip(...)` themselves when it returns false —
+  11 tests currently skip locally for this reason. This is intentional and version-aware: the same tests run
+  for real against MariaDB 11.8.8 the moment DB_HOST points back at Hostinger, with no code change needed.
+  **Don't "fix" these tests by removing the skip or loosening the assertion — the gap is the local engine, not
+  the test.**
 - This machine's Herd-managed PHP 8.3 (and 8.2) binaries are broken (`dyld` symbol error) — only the default
   PHP 8.4 works. Composer is pinned to resolve as if PHP 8.3 (`config.platform.php` in `composer.json`) so
   package versions are correct, but `artisan`/`composer` commands actually execute under 8.4 locally until

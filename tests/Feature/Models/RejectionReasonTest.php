@@ -23,7 +23,7 @@ test('scope must be either document or decision', function () {
         'label' => 'X',
         'applicant_text' => 'X',
     ]);
-})->throws(QueryException::class);
+})->throws(QueryException::class)->skip(fn () => ! databaseEnforcesCheckConstraints(), 'CHECK constraints are not enforced on this engine');
 
 test('code must be unique within a scope but may repeat across scopes', function () {
     RejectionReason::query()->create(['scope' => 'document', 'code' => 'incomplete', 'label' => 'Incomplete', 'applicant_text' => 'Incomplete.']);

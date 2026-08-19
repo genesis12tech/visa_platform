@@ -78,7 +78,7 @@ test('fee amounts cannot be negative', function () {
         'base_fee_minor' => Money::of(-100, 'USD'),
         'valid_from' => '2026-01-01',
     ]);
-})->throws(QueryException::class);
+})->throws(QueryException::class)->skip(fn () => ! databaseEnforcesCheckConstraints(), 'CHECK constraints are not enforced on this engine');
 
 test('valid_until must be strictly after valid_from when set', function () {
     $visaType = makeVisaType();
@@ -90,7 +90,7 @@ test('valid_until must be strictly after valid_from when set', function () {
         'valid_from' => '2026-06-01',
         'valid_until' => '2026-01-01',
     ]);
-})->throws(QueryException::class);
+})->throws(QueryException::class)->skip(fn () => ! databaseEnforcesCheckConstraints(), 'CHECK constraints are not enforced on this engine');
 
 test('valid_until may be left open-ended (null)', function () {
     $visaType = makeVisaType();

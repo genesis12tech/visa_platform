@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /*
@@ -44,7 +45,21 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+/**
+ * MySQL only enforces CHECK constraints from 8.0.16 (Backend_schema.md
+ * §1509) — below that they parse and silently no-op. MariaDB enforces them
+ * from 10.2.1, well below this project's verified-production 11.8.8, so any
+ * MariaDB instance passes unconditionally. Tests asserting a CHECK
+ * violation throws should ->skip(fn () => ! databaseEnforcesCheckConstraints(), ...)
+ * rather than fail outright when run against a non-enforcing local engine.
+ */
+function databaseEnforcesCheckConstraints(): bool
 {
-    // ..
+    $version = DB::selectOne('SELECT VERSION() as version')->version;
+
+    if (stripos($version, 'mariadb') !== false) {
+        return true;
+    }
+
+    return version_compare($version, '8.0.16', '>=');
 }

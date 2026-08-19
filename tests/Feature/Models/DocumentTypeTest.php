@@ -32,7 +32,7 @@ test('max_size_bytes must be at least 1024', function () {
         'allowed_extensions' => ['pdf'],
         'max_size_bytes' => 100,
     ]);
-})->throws(QueryException::class);
+})->throws(QueryException::class)->skip(fn () => ! databaseEnforcesCheckConstraints(), 'CHECK constraints are not enforced on this engine');
 
 test('max_size_bytes cannot exceed 50 MB', function () {
     DocumentType::query()->create([
@@ -42,4 +42,4 @@ test('max_size_bytes cannot exceed 50 MB', function () {
         'allowed_extensions' => ['pdf'],
         'max_size_bytes' => 100_000_000,
     ]);
-})->throws(QueryException::class);
+})->throws(QueryException::class)->skip(fn () => ! databaseEnforcesCheckConstraints(), 'CHECK constraints are not enforced on this engine');

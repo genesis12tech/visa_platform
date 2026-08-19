@@ -48,7 +48,7 @@ test('processing_days_max cannot be less than processing_days_min', function () 
     $country = makeCountry();
 
     VisaType::query()->create(['country_id' => $country->id, 'code' => 'TOURIST', 'name' => 'Tourist', 'processing_days_min' => 10, 'processing_days_max' => 5]);
-})->throws(QueryException::class);
+})->throws(QueryException::class)->skip(fn () => ! databaseEnforcesCheckConstraints(), 'CHECK constraints are not enforced on this engine');
 
 test('a visa type cannot reference a nonexistent country', function () {
     VisaType::query()->create(['country_id' => 999999, 'code' => 'TOURIST', 'name' => 'Tourist', 'processing_days_min' => 3, 'processing_days_max' => 5]);

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\IpAddressCast;
 use App\Models\Concerns\HasUlid;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -61,6 +62,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'last_login_at' => 'datetime',
+            'last_login_ip' => IpAddressCast::class,
             'mfa_enabled_at' => 'datetime',
             'suspended_at' => 'datetime',
         ];
