@@ -8,6 +8,9 @@ DataCredential.txt
 .DS_Store
 Thumbs.db
 
+# Claude Code local session state
+/.claude
+
 # Laravel
 *.log
 .phpactor.json
