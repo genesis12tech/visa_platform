@@ -2,7 +2,12 @@
 
 namespace App\Providers;
 
+use App\Models\Agent;
+use App\Models\Applicant;
+use App\Models\Staff;
+use App\Policies\UserPolicy;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -21,6 +26,19 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerMigrationMacros();
+        $this->registerGuardScopedUserPolicies();
+    }
+
+    /**
+     * Applicant/Agent/Staff are guard-provider views of the same `users`
+     * table (Backend_schema.md §11.1), not independent sensitive models —
+     * they share UserPolicy rather than each needing their own.
+     */
+    private function registerGuardScopedUserPolicies(): void
+    {
+        Gate::policy(Applicant::class, UserPolicy::class);
+        Gate::policy(Agent::class, UserPolicy::class);
+        Gate::policy(Staff::class, UserPolicy::class);
     }
 
     /**

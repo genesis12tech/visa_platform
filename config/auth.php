@@ -1,6 +1,8 @@
 <?php
 
-use App\Models\User;
+use App\Models\Agent;
+use App\Models\Applicant;
+use App\Models\Staff;
 
 return [
 
@@ -17,7 +19,7 @@ return [
 
     'defaults' => [
         'guard' => env('AUTH_GUARD', 'web'),
-        'passwords' => env('AUTH_PASSWORD_BROKER', 'users'),
+        'passwords' => env('AUTH_PASSWORD_BROKER', 'applicants'),
     ],
 
     /*
@@ -37,10 +39,25 @@ return [
     |
     */
 
+    /*
+    | Three session guards, each backed by a provider scoped to one
+    | user_type (Backend_schema.md §11.1). 'web' is the applicant guard —
+    | kept as the default guard name so Laravel's own auth internals
+    | (password broker default, etc.) need no further overriding.
+    */
+
     'guards' => [
         'web' => [
             'driver' => 'session',
-            'provider' => 'users',
+            'provider' => 'applicants',
+        ],
+        'agent' => [
+            'driver' => 'session',
+            'provider' => 'agents',
+        ],
+        'staff' => [
+            'driver' => 'session',
+            'provider' => 'staff',
         ],
     ],
 
@@ -62,15 +79,18 @@ return [
     */
 
     'providers' => [
-        'users' => [
+        'applicants' => [
             'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', User::class),
+            'model' => Applicant::class,
         ],
-
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
+        'agents' => [
+            'driver' => 'eloquent',
+            'model' => Agent::class,
+        ],
+        'staff' => [
+            'driver' => 'eloquent',
+            'model' => Staff::class,
+        ],
     ],
 
     /*
@@ -92,9 +112,27 @@ return [
     |
     */
 
+    /*
+    | All three brokers share the one password_reset_tokens table — email
+    | is globally unique across users regardless of user_type, so there is
+    | no ambiguity in which account a token belongs to.
+    */
+
     'passwords' => [
-        'users' => [
-            'provider' => 'users',
+        'applicants' => [
+            'provider' => 'applicants',
+            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'expire' => 60,
+            'throttle' => 60,
+        ],
+        'agents' => [
+            'provider' => 'agents',
+            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'expire' => 60,
+            'throttle' => 60,
+        ],
+        'staff' => [
+            'provider' => 'staff',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
             'expire' => 60,
             'throttle' => 60,
