@@ -16,6 +16,11 @@ a QR code and 10 bcrypt-hashed recovery codes, a login-time challenge step, `Ens
 non-enrolment staff route in non-local environments) using `pragmarx/google2fa-laravel`/`google2fa-qrcode`. See
 "`Applicant`/`Agent`/`Staff` subclasses — a recurring pitfall" below before touching anything related to
 guards, relations on `User`, or notifications sent to a user (`docs/Implementation_plan.md` §4–§5).
+**`visa-agent.geninnovations.net` and `visa-staff.geninnovations.net` are live** as of 2026-08-21 (split-directory
+index.php + standard front-controller `.htaccess`, since they can't use the primary domain's
+rewrite-to-`/public` trick — see Deployment_runbook.md's "Agent and staff subdomains" section), each verified
+serving the correct guard with the correct session cookie name. That same check caught production sitting 3
+commits behind (the deploy step had only been run once, at the initial redeploy) — now caught up.
 
 All 9 reference-data tables exist with tested models (currencies,
 countries, visa_types, visa_fees, document_types, rejection_reasons, service_locations, holidays,

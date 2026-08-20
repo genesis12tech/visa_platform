@@ -52,6 +52,58 @@ actually served.
 </IfModule>
 ```
 
+### Agent and staff subdomains (added 2026-08-20, wired 2026-08-21)
+
+`visa-agent.geninnovations.net` and `visa-staff.geninnovations.net` (Backend_schema.md §11.1's other two
+guards) are **separate Hostinger subdomains with their own fixed web roots**
+(`~/domains/geninnovations.net/public_html/visa-agent` and `.../visa-staff`), but there is still only **one**
+Laravel app instance — `Route::domain()` in `bootstrap/app.php` differentiates which guard's routes apply by
+Host header (routes/agent.php, routes/staff.php). Because their web roots are physically separate directories
+from where the app actually lives, they **cannot** use the rewrite-to-`/public` trick above (that only works
+when the web root and the app root are the same directory, as they are for the primary `visa` domain) — they
+need the older split-directory pattern instead: a hand-written `index.php` bootstrapping the shared app by
+absolute path, **plus** a standard Laravel front-controller `.htaccess`:
+
+```php
+// public_html/visa-agent/index.php (public_html/visa-staff/index.php is identical except the comment)
+<?php
+use Illuminate\Foundation\Application;
+use Illuminate\Http\Request;
+define('LARAVEL_START', microtime(true));
+$appPath = '/home/u508116592/domains/geninnovations.net/public_html/visa';
+if (file_exists($maintenance = $appPath.'/storage/framework/maintenance.php')) { require $maintenance; }
+require $appPath.'/vendor/autoload.php';
+$app = require_once $appPath.'/bootstrap/app.php';
+$app->handleRequest(Request::capture());
+```
+
+```apache
+# public_html/visa-agent/.htaccess and public_html/visa-staff/.htaccess
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
+```
+
+**The `.htaccess` is not optional** — without it, `/` resolves via Apache's `DirectoryIndex` and works, but any
+other path (`/login`, `/mfa/enroll`, ...) doesn't correspond to a real file and 404s *before ever reaching
+Laravel* (briefly surfaced as WordPress's own themed 404 page — the domain root's WordPress `.htaccess` was
+catching the fall-through). This is the standard Laravel `public/.htaccess` content, unmodified.
+
+**No built frontend assets live in these two directories** — current auth views (login, MFA, etc.) don't
+reference any, so this is a known, accepted gap rather than a real one right now. It will need addressing (most
+likely: point asset URLs at the primary domain regardless of which portal is being viewed, rather than
+duplicating `public/build/` into three places) once S2.10's design system actually ships CSS/JS to these
+portals.
+
+**Discovered while wiring this up**: production was silently 3 commits behind — the app directory's `git pull`
+had only ever been run once, during the initial 2026-08-20 redeploy, and never again despite two full stages
+(S2.6, S2.7) shipping since. There's exactly one app checkout to keep in sync (`public_html/visa`) regardless
+of how many subdomains front it — remember to actually run the deploy steps in §5, not just assume `git push`
+was enough.
+
 A request for `/.env` or `/vendor/autoload.php` gets rewritten to `/public/.env` / `/public/vendor/autoload.php`
 — neither exists under `public/`, so Apache 404s instead of serving the real file. `public/index.php` is now
 Laravel's **standard, unmodified** entry point (no custom bootstrap needed), since `app/`, `vendor/`, and
