@@ -121,6 +121,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Guard Portal Domains
+    |--------------------------------------------------------------------------
+    |
+    | Backend_schema.md §11.1: three session guards on three hosts. The
+    | applicant guard ('web') is unconstrained — it serves whatever host the
+    | app itself is reached on. Agent/staff routes are only registered under
+    | Route::domain() when these are set; leave blank (e.g. in CI or before
+    | the subdomain exists) to skip registering that guard's routes rather
+    | than accidentally serving them on the wrong host.
+    |
+    */
+
+    'agent_domain' => env('AGENT_DOMAIN', 'visa-agent.geninnovations.net') ?: null,
+    'staff_domain' => env('STAFF_DOMAIN', 'visa-staff.geninnovations.net') ?: null,
+
+    /*
+    |--------------------------------------------------------------------------
     | Maintenance Mode Driver
     |--------------------------------------------------------------------------
     |

@@ -48,26 +48,42 @@ column partial-unique-index emulation pattern, `SIGNAL SQLSTATE` triggers, and b
 compatible (JSON_EXTRACT etc. all work), just without MySQL 8's binary storage optimization underneath. Treat
 this as the authoritative engine going forward, not an aspiration to reconcile back to literal MySQL 8.
 
-**Local dev and the Pest test suite point at a local MAMP Pro MySQL instance**
-(`visa_platform_local` / `visa_app`, `127.0.0.1:3306`), not the Hostinger database — this part of the
-2026-08-20 decision still stands. History: Stage 1–S2.5 ran against the real Hostinger database directly
-(`u508116592_visa_db`) since SQLite can't run the triggers, generated columns, or `ascii_bin` collation this
-schema depends on. That worked but cost 3–6s/test in network round-trips (~50s+ suite runtime), and
-Hostinger's Remote MySQL allowlist repeatedly became unreliable mid-session (access denied from a
-previously-working IP, `.env`'s `DB_HOST` drifting across three different hostnames — never fully
-root-caused, though the 2026-08-20 account reset explains at least the last round: the DB was recreated with a
-new host and password). Suite runtime on MAMP is ~34s. **Note this is narrower than the original 2026-08-20
-decision**: active Hostinger *deployment* resumed the same day (see above) — only local dev/test stayed on
-MAMP, since the remote-DB flakiness was specifically a problem for the tight TDD red-green loop, not for
-periodic deploys.
-- **Known gap, accepted deliberately:** this machine's MAMP Pro install only has **MySQL 5.7.39** available (no
-  8.x/MariaDB bundle) — `CHECK` constraints parse but are **not enforced** below MySQL 8.0.16. Tests that
-  assert a `CHECK` violation throws `QueryException` use a shared Pest helper,
-  `databaseEnforcesCheckConstraints()` (`tests/Pest.php`), and `->skip(...)` themselves when it returns false —
-  11 tests currently skip locally for this reason. This is intentional and version-aware: the same tests run
-  for real against MariaDB 11.8.8 the moment DB_HOST points back at Hostinger, with no code change needed.
-  **Don't "fix" these tests by removing the skip or loosening the assertion — the gap is the local engine, not
-  the test.**
+**Settled 2026-08-20 (after real back-and-forth — this is the final state, not a waypoint): local dev and the
+Pest test suite point at the real Hostinger MariaDB database**, the same one the production server uses. This
+machine cannot run a local engine that enforces `CHECK` constraints: MAMP Pro's bundled MySQL 8.0 refuses to
+start on this specific Mac (MacBook Pro Retina 15", Mid 2015, Haswell i7 — the CPU comfortably meets MySQL 8's
+requirements, so this is almost certainly the same class of problem as Homebrew and Herd's PHP 8.3 breaking
+here: macOS 12.5.1 is behind what current prebuilt binaries assume, not a hardware limit), and Docker Desktop
+was judged likely to hit the identical wall, so it wasn't attempted. MAMP's MySQL 5.7 remains installed but
+unused for this project — it doesn't enforce `CHECK` constraints (need 8.0.16+), which silently invalidated a
+real chunk of test coverage when tried (see the `databaseEnforcesCheckConstraints()` mechanism this produced,
+below — now moot for local runs but left in place since it's harmless and self-disables automatically).
+**Consequence to hold onto:** local dev/test and production are no longer isolated — `migrate:fresh` locally
+now wipes the live server's data too, since there's only one database. Treat this database with production
+care from local sessions, not test-database carelessness. Suite runtime is ~11 minutes (network round-trips
+to Hostinger) — slow, but was the deliberate trade for full `CHECK`-constraint fidelity without fighting this
+machine's binary-compatibility issues further. `.env`'s `DB_HOST` has changed hostnames multiple times across
+this project (`srv683` → `srv1331` → `srv1130`) — if connections start failing, verify the current hostname in
+hPanel → Databases → Remote MySQL rather than assuming the value in `.env` still holds.
+- The `databaseEnforcesCheckConstraints()` Pest helper (`tests/Pest.php`) and the `->skip(...)` guards on tests
+  that assert a `CHECK` violation throws `QueryException` were built for the MAMP MySQL 5.7 phase and are
+  **no-ops now** (MariaDB enforces `CHECK`, so the guard's condition is always false and nothing skips) — left
+  in place rather than stripped out, since they cost nothing and would matter again if local ever moves to a
+  non-enforcing engine. **Real bug this surfaced once MariaDB actually started enforcing these checks**:
+  `login_attempts`' `chk_login_failure` CHECK, copied verbatim from Backend_schema.md, had a three-valued-logic
+  gap — `NULL IN (...)` evaluates to `NULL` not `FALSE` in SQL, so a failed attempt with a null
+  `failure_reason` silently passed the constraint as originally worded. Fixed by adding an explicit
+  `failure_reason IS NOT NULL` clause. Worth checking Backend_schema.md's other multi-branch CHECK constraints
+  for the same pattern if any of them ever get copied into a migration and start throwing surprising results.
+- **Hard resource ceiling discovered 2026-08-20**: this DB user (`u508116592_visatest`) has a Hostinger-enforced
+  cap of **500 connections/hour**. A long working session running the full suite repeatedly (each run opens a
+  fresh connection per test under `RefreshDatabase`) exhausted it, producing a wall of
+  `SQLSTATE[HY000] [1226] User ... has exceeded the 'max_connections_per_hour' resource` failures partway
+  through a run — every test after the quota was hit fails this way regardless of whether the code is correct.
+  **This is a hard quota, not flakiness** — recognize it by that exact error text and stop re-running the full
+  suite; it won't recover until the rolling hourly window clears. Prefer targeted `--filter=` runs on the
+  specific file(s) you're actively changing over routine full-suite runs, and reserve full-suite passes for
+  real checkpoints, not every micro-change — each full run costs a meaningful fraction of the hourly budget.
 - This machine's Herd-managed PHP 8.3 (and 8.2) binaries are broken (`dyld` symbol error) — only the default
   PHP 8.4 works. Composer is pinned to resolve as if PHP 8.3 (`config.platform.php` in `composer.json`) so
   package versions are correct, but `artisan`/`composer` commands actually execute under 8.4 locally until

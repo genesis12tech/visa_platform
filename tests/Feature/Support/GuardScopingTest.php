@@ -88,3 +88,15 @@ test('HasUlid and Spatie roles still work through the scoped provider models', f
     expect($found->ulid)->toBe($applicant->ulid)
         ->and($found)->toBeInstanceOf(Illuminate\Foundation\Auth\User::class);
 });
+
+test('Applicant, Agent, and Staff report the same polymorphic morph class as User', function () {
+    // Otherwise anything polymorphic (Spatie's model_type on role/permission
+    // pivots, notifications' notifiable_type) would silently split into
+    // separate buckets depending on which subclass happened to touch a row
+    // last — e.g. a role assigned via Staff::find($id) would be invisible
+    // to a later User::find($id)->hasRole() check.
+    expect((new Applicant)->getMorphClass())->toBe(User::class)
+        ->and((new Agent)->getMorphClass())->toBe(User::class)
+        ->and((new Staff)->getMorphClass())->toBe(User::class)
+        ->and((new User)->getMorphClass())->toBe(User::class);
+});

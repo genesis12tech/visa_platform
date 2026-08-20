@@ -25,9 +25,16 @@ return new class extends Migration
             $table->index(['user_id', 'created_at'], 'idx_login_user_time');
         });
 
+        // Backend_schema.md's own CHECK wording omits `failure_reason IS NOT NULL` on the
+        // second branch. Under SQL's three-valued logic, `NULL IN (...)` evaluates to NULL
+        // (not FALSE), and a CHECK constraint only rejects a definite FALSE — so a failed
+        // attempt with a null failure_reason silently passes the constraint as specified.
+        // Adding the explicit NOT NULL closes that gap; discovered via MariaDB actually
+        // enforcing this CHECK (MySQL 5.7 locally does not, which is how the original
+        // wording went untested until now).
         DB::statement("ALTER TABLE login_attempts ADD CONSTRAINT chk_login_failure CHECK (
             (successful = 1 AND failure_reason IS NULL) OR
-            (successful = 0 AND failure_reason IN ('bad_credentials','unverified','suspended','mfa_failed','throttled'))
+            (successful = 0 AND failure_reason IS NOT NULL AND failure_reason IN ('bad_credentials','unverified','suspended','mfa_failed','throttled'))
         )");
     }
 
