@@ -30,11 +30,14 @@ TDD throughout (every test written and watched fail before the code that makes i
 Architecture below), Pest 4/Pint/Larastan level 6 all installed and passing, Tailwind 3.4 wired to the Content
 Guidelines tokens, Sentry installed and wired into exception handling. **Live at
 `https://visa.geninnovations.net`**, deployed to Hostinger and verified against the real production database —
-see `docs/Deployment_runbook.md` for the full setup, including a deployment-topology detail worth knowing
-before touching the server: the app lives at `~/visa_platform_app`, but the web-facing directory is a separate
-fixed path with a hand-written `index.php` pointing back at it (Hostinger's subdomain document-root override
-didn't work as expected — full explanation in the runbook). The Stage 1 S1.4 skeleton test (job → queue →
-MySQL → read back) passed in the deployed environment.
+see `docs/Deployment_runbook.md` for the full setup. **Redeployed from scratch 2026-08-20** after a WordPress
+reinstall for the main domain turned out to reset the entire hosting account (SSH keys, the old app checkout,
+cron jobs, and the database all wiped or recreated — see runbook §0). The topology changed in the process: the
+app root and web root are now the **same directory**
+(`~/domains/geninnovations.net/public_html/visa`), protected by a root `.htaccess` that rewrites every request
+into `public/` — replacing the earlier split-directory-plus-hand-written-`index.php` approach (Hostinger still
+can't redirect a subdomain's document root to `public/` directly; the `.htaccess` rewrite gets the same
+no-sensitive-file-exposure property a different way, verified empirically with curl post-deploy, not assumed).
 
 **The production database is MariaDB 11.8.8, not literally MySQL 8.0.x.** Discovered while wiring up local
 dev/testing (2026-08-16), not previously known. Verified directly against this instance and confirmed
@@ -45,15 +48,18 @@ column partial-unique-index emulation pattern, `SIGNAL SQLSTATE` triggers, and b
 compatible (JSON_EXTRACT etc. all work), just without MySQL 8's binary storage optimization underneath. Treat
 this as the authoritative engine going forward, not an aspiration to reconcile back to literal MySQL 8.
 
-**As of 2026-08-20, local dev and the Pest test suite point at a local MAMP Pro MySQL instance**
-(`visa_platform_local` / `visa_app`, `127.0.0.1:3306`), not the Hostinger database. History: Stage 1–S2.5 ran
-against the real Hostinger database directly (`u508116592_visa_db`) since SQLite can't run the triggers,
-generated columns, or `ascii_bin` collation this schema depends on. That worked but cost 3–6s/test in network
-round-trips (~50s+ suite runtime), and Hostinger's Remote MySQL allowlist repeatedly became unreliable
-mid-session (access denied from a previously-working IP, `.env`'s `DB_HOST` drifting between `srv683` and
-`srv1331` — never fully root-caused). Decision: **stop fighting remote DB access and run locally for the rest
-of this project; redeploy to Hostinger only once the project is otherwise complete.** Suite runtime dropped to
-~34s.
+**Local dev and the Pest test suite point at a local MAMP Pro MySQL instance**
+(`visa_platform_local` / `visa_app`, `127.0.0.1:3306`), not the Hostinger database — this part of the
+2026-08-20 decision still stands. History: Stage 1–S2.5 ran against the real Hostinger database directly
+(`u508116592_visa_db`) since SQLite can't run the triggers, generated columns, or `ascii_bin` collation this
+schema depends on. That worked but cost 3–6s/test in network round-trips (~50s+ suite runtime), and
+Hostinger's Remote MySQL allowlist repeatedly became unreliable mid-session (access denied from a
+previously-working IP, `.env`'s `DB_HOST` drifting across three different hostnames — never fully
+root-caused, though the 2026-08-20 account reset explains at least the last round: the DB was recreated with a
+new host and password). Suite runtime on MAMP is ~34s. **Note this is narrower than the original 2026-08-20
+decision**: active Hostinger *deployment* resumed the same day (see above) — only local dev/test stayed on
+MAMP, since the remote-DB flakiness was specifically a problem for the tight TDD red-green loop, not for
+periodic deploys.
 - **Known gap, accepted deliberately:** this machine's MAMP Pro install only has **MySQL 5.7.39** available (no
   8.x/MariaDB bundle) — `CHECK` constraints parse but are **not enforced** below MySQL 8.0.16. Tests that
   assert a `CHECK` violation throws `QueryException` use a shared Pest helper,
@@ -77,8 +83,14 @@ of this project; redeploy to Hostinger only once the project is otherwise comple
   dynamic (observed changing mid-session). **Must be scoped to specific IPs before anything production-like
   touches it.** Note: this wildcard entry was believed set from earlier in the project but had in fact never
   been saved in hPanel — confirmed and actually created 2026-08-20 (hPanel → Databases → Remote MySQL →
-  "Any Host" checkbox) after several access-denied failures traced it back. If remote DB access ever starts
-  failing again, check this setting first before assuming an IP/network issue.
+  "Any Host" checkbox) after several access-denied failures traced it back. **Later the same day**, a full
+  account reset (Deployment_runbook.md §0) recreated the database and its user from scratch — new password,
+  new physical host (`srv1130.hstgr.io`, having earlier been `srv683`/`srv1331`) — while the `%` entry itself
+  survived unchanged. So "access denied" from this account has now had at least three different real causes
+  across this project (allowlist not actually saved; dynamic client IP; credentials silently reset) that all
+  produce the identical MySQL 1045 error. **Don't assume which one it is** — check the DB user's `Created at`
+  date in hPanel (recent = credentials were reset) and the hostname shown on the Remote MySQL page before
+  re-diagnosing from scratch.
 - `storage:link` is not run in production — `exec()` is disabled on the Hostinger PHP environment, and this
   project doesn't need it anyway (FR-DM-07/BR-09: documents are never served via the public-disk symlink
   pattern, only authorized controller streams with signed URLs).
