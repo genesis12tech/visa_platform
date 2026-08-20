@@ -8,8 +8,16 @@ Visa Application System (VAS) — a government/embassy platform for visa intake,
 payment, appointment booking, officer review, and decisions, with full audit and legal defensibility as
 first-class requirements. Applicant, agent, officer, and admin portals; public tracking; Stripe payments.
 
-**Current state: Stage 1 complete and deployed, Stage 2 (Foundation) in progress — S2.1–S2.5 done**
-(`docs/Implementation_plan.md` §4–§5). All 9 reference-data tables exist with tested models (currencies,
+**Current state: Stage 1 complete and deployed, Stage 2 (Foundation) in progress — S2.1–S2.7 done.** S2.6 added
+three session guards (web/agent/staff) each with their own cookie name and domain-based routing, registration +
+email verification, rate-limited login with full `login_attempts` recording, and password reset — all
+non-enumerating (PUB-05-style) where applicable. S2.7 added mandatory TOTP-based MFA for staff (enrolment with
+a QR code and 10 bcrypt-hashed recovery codes, a login-time challenge step, `EnsureMfaEnrolled` gating every
+non-enrolment staff route in non-local environments) using `pragmarx/google2fa-laravel`/`google2fa-qrcode`. See
+"`Applicant`/`Agent`/`Staff` subclasses — a recurring pitfall" below before touching anything related to
+guards, relations on `User`, or notifications sent to a user (`docs/Implementation_plan.md` §4–§5).
+
+All 9 reference-data tables exist with tested models (currencies,
 countries, visa_types, visa_fees, document_types, rejection_reasons, service_locations, holidays,
 visa_type_document_requirements), seeded via `ReferenceDataSeeder`. `FeeResolver` — the first of the six
 approved services — is built and tested: specificity precedence (nationality-specific beats general),
@@ -25,7 +33,7 @@ policed. Five policies exist (`User`, `ApplicantProfile`, `VisaType`, `VisaFee`,
 first of the five permanently-green tests — policy coverage — is live at
 `tests/Feature/Authorization/PolicyCoverageTest.php`: it enumerates every model under `app/Models`, exempts
 only pure reference/config tables, and fails if any other model lacks a registered policy, so every future
-sensitive model added in later stages is caught automatically if its policy is forgotten. 137 tests passing,
+sensitive model added in later stages is caught automatically if its policy is forgotten. 221 tests as of S2.7,
 TDD throughout (every test written and watched fail before the code that makes it pass existed). Laravel 12 is scaffolded with the full locked dependency set (adjusted for Hostinger single-host — see
 Architecture below), Pest 4/Pint/Larastan level 6 all installed and passing, Tailwind 3.4 wired to the Content
 Guidelines tokens, Sentry installed and wired into exception handling. **Live at
@@ -185,6 +193,39 @@ controller/domain action and the Livewire view that shows blockers/disabled reas
 of a guard anywhere (even a UI-only re-check) is the specific failure mode the docs call out repeatedly: an
 applicant or officer sees an enabled control that then fails. Every slice that extends a guard must extend the
 existing service, not add a new one.
+
+### `Applicant`/`Agent`/`Staff` subclasses — a recurring pitfall, watch for it
+
+`App\Models\Applicant`, `Agent`, and `Staff` (S2.6) are thin `User` subclasses — same `users` table, each with a
+permanent global scope on `user_type` — that exist purely so each auth guard's provider only ever resolves its
+own account type (Backend_schema.md §11.1's actual security boundary). They are **not independent entities**,
+but PHP/Eloquent doesn't know that, and by 2026-08-21 this exact pattern had broken working code **four
+separate times**, always the same shape: some mechanism infers an identity/key from the *runtime* class
+(`Applicant`/`Agent`/`Staff`) instead of the *conceptual* one (`User`), so a lookup made through a different
+class than the one that wrote the row silently finds nothing:
+
+1. **Spatie's guard-guessing** matches a model class to a `config('auth.providers')` entry by exact string —
+   broke for a plain `User` instance once providers pointed at the subclasses. Fixed with Spatie's own
+   `protected string $guard_name = 'web';` property on `User`.
+2. **`getMorphClass()`** defaults to `static::class` — would have silently split Spatie's `model_type` and
+   notifications' `notifiable_type` depending on which subclass touched a row last. Fixed by overriding
+   `getMorphClass()` on `User` to return `self::class` (not `static::class` — the distinction is the whole
+   fix), so every subclass reports `User::class` regardless of which one is actually calling it.
+3. **Default foreign-key inference** on `hasOne`/`hasMany`/`belongsTo` uses `Str::snake(class_basename($this))`
+   — also the runtime class. `User::mfaMethod()`/`mfaRecoveryCodes()` silently looked for `staff_id`/
+   `applicant_id` instead of `user_id` when called through a subclass, until both relations were given an
+   explicit foreign key.
+4. **Test assertions** (`assertAuthenticatedAs`, `Notification::fake()`'s `assertSentTo`) compare by exact
+   class too — a test creating a plain `User` fixture but asserting against what a guard-scoped controller
+   actually logged in/notified (a `Staff`/`Applicant`/`Agent` instance) fails not because the code is wrong,
+   but because the assertion is comparing the wrong concrete class. Fix is in the test: re-fetch via the
+   subclass (e.g. `Staff::query()->find($user->id)`) before asserting.
+
+**The pattern to apply going forward**: any new relation, cast, or third-party integration touching `User`
+should be checked against this same failure mode before it ships, not discovered by a cascading test failure
+after the fact. When something can't be made subclass-safe generically (case 4), fix it locally in the test/
+call site and leave a comment explaining why — don't be surprised if it recurs in S2.8+ (audit logging,
+notifications, anything polymorphic or key-inferring touching `users`).
 
 ### MySQL 8, not PostgreSQL — deltas that matter
 

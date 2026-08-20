@@ -73,6 +73,16 @@ class AuthenticatedSessionController extends Controller
 
         $request->clearRateLimiters();
 
+        // Backend_schema.md §11.4: an enrolled staff member doesn't complete
+        // the session yet — the password alone isn't enough. The pending
+        // user id lives in the session (not yet tied to any guard's
+        // authenticated state) until the challenge succeeds.
+        if ($guard === 'staff' && $user->mfa_enabled_at !== null) {
+            $request->session()->put('mfa_pending_user_id', $user->id);
+
+            return redirect()->route('staff.mfa.challenge');
+        }
+
         Auth::guard($guard)->login($user);
         $request->session()->regenerate();
 

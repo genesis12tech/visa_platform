@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureMfaEnrolled;
 use App\Http\Middleware\SetGuardSessionCookie;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -71,6 +72,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->group('staff-portal', [
             SetGuardSessionCookie::class.':visa_staff_session',
             'web',
+            EnsureMfaEnrolled::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

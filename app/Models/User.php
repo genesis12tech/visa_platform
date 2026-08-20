@@ -9,6 +9,8 @@ use Illuminate\Auth\MustVerifyEmail;
 use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -87,6 +89,28 @@ class User extends Authenticatable implements MustVerifyEmailContract
     public function suspendedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'suspended_by_user_id');
+    }
+
+    /**
+     * Foreign keys are explicit on every relation defined here, deliberately
+     * — Eloquent's default inference (`Str::snake(class_basename($this))`)
+     * uses the *runtime* class, so an unqualified hasOne/hasMany/belongsTo
+     * called via Applicant/Agent/Staff would infer 'applicant_id'/'agent_id'/
+     * 'staff_id' instead of 'user_id', silently returning nothing.
+     *
+     * @return HasOne<UserMfaMethod, $this>
+     */
+    public function mfaMethod(): HasOne
+    {
+        return $this->hasOne(UserMfaMethod::class, 'user_id')->where('type', 'totp');
+    }
+
+    /**
+     * @return HasMany<MfaRecoveryCode, $this>
+     */
+    public function mfaRecoveryCodes(): HasMany
+    {
+        return $this->hasMany(MfaRecoveryCode::class, 'user_id');
     }
 
     /**
