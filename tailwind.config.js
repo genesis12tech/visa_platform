@@ -82,7 +82,14 @@ export default {
       modal: 'var(--shadow-modal)',
     },
     extend: {
-      maxWidth: { content: 'var(--content-max)', panel: 'var(--panel-max)' },
+      // modal-sm/md/lg: Content_guidelines.md §5.12's exact modal sizes (28/36/48rem).
+      // Not part of the §2.4 container scale (content/panel), so added here the
+      // same way — a named token, never an arbitrary-value bracket on the component.
+      maxWidth: { content: 'var(--content-max)', panel: 'var(--panel-max)', 'modal-sm': '28rem', 'modal-md': '36rem', 'modal-lg': '48rem' },
+      // §5.12: modal body scrolls, not the page, capped at 85vh — viewport-relative,
+      // so (like the modal widths above) it's a named token rather than an
+      // arbitrary-value bracket on the component.
+      maxHeight: { modal: '85vh' },
       minHeight: { tap: '44px' },
       minWidth:  { tap: '44px' },
       transitionDuration: {

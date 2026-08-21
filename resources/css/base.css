@@ -70,11 +70,19 @@
 }
 
 /* Windows High Contrast / forced colours — §3.1. Component classes referenced
-   here (.btn, .badge, .alert, .card, .input) are defined as they land in the
-   Content Guidelines §5 component library through Stage 2+; these rules are
-   in place ahead of that so no component ships without them. */
+   here are defined as they land in the Content Guidelines §5 component
+   library through Stage 2+; these rules are in place ahead of that so no
+   component ships without them. Extended alongside each S2.10 component as
+   it shipped (progress-bar, modal, toast — the per-component requirements in
+   §3.1's table), not just the original five. */
 @media (forced-colors: active) {
-  .btn, .badge, .alert, .card, .input {
+  .btn, .badge, .alert, .card, .input, .progress-bar, .modal, .toast {
+    border: 1px solid;
+  }
+
+  /* ProgressBar's fill needs its own border too — a borderless fill on a
+     bordered track is otherwise indistinguishable from the track itself. */
+  .progress-bar > * {
     border: 1px solid;
   }
 
@@ -102,9 +110,28 @@
   }
 
   .status-icon { forced-color-adjust: none; }
+
+  /* Skeleton (§3.1 table): animated grey blocks are meaningless in forced
+     colours — replaced entirely by the "Loading" text every skeleton
+     already carries visually-hidden via .sr-only. */
+  .skeleton {
+    background: none;
+    animation: none;
+    border: 1px solid;
+  }
+  .skeleton .sr-only {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
 }
 
 @media (prefers-contrast: more) {
-  .btn, .input, .card { border-width: 2px; }
+  .btn, .input, .card, .progress-bar, .modal { border-width: 2px; }
   :focus-visible { outline-width: 4px; }
 }

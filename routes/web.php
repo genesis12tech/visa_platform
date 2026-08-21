@@ -13,6 +13,12 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// Local-only preview of the S2.10 design-system component library — never
+// registered outside local, not linked from any real page.
+if (app()->environment('local')) {
+    Route::get('/dev/components', fn () => view('dev.components'))->name('dev.components');
+}
+
 // Backend_schema.md §11.2 — applicant self-registration (PRD FR-ID-01, PUB-05).
 Route::middleware('guest:web')->group(function () {
     Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');

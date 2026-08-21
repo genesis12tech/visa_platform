@@ -8,7 +8,28 @@ Visa Application System (VAS) — a government/embassy platform for visa intake,
 payment, appointment booking, officer review, and decisions, with full audit and legal defensibility as
 first-class requirements. Applicant, agent, officer, and admin portals; public tracking; Stripe payments.
 
-**Current state: Stage 1 complete and deployed, Stage 2 (Foundation) in progress — S2.1–S2.9 done.** S2.9 audited
+**Current state: Stage 1 complete and deployed, Stage 2 (Foundation) in progress — S2.1–S2.10 done.** S2.10 built
+the Blade/Livewire design-system component library (Content_guidelines.md §5): `icon` (self-hosted Heroicons
+2.x via blade-heroicons — a transitive dependency of `rappasoft/laravel-livewire-tables`, not a project-level
+install; its own generic `<x-icon>` tag had to be disabled in `config/blade-icons.php` to free that exact name
+for this project's wrapper), `button`, `badge` (StatusBadge), `alert`, `card`, `field-group` + `input`/
+`textarea`/`select`/`checkbox`/`radio-group`/`date-input`, `error-summary`, `empty-state`, `progress-bar`,
+`skeleton`, `modal`, and Livewire `Shared\Toast`/`Shared\SessionWarning`. Tokens, high-contrast mode, and print
+stylesheet were already complete from Stage 1 scaffolding — S2.10's real gap there was extending `base.css`'s
+forced-colors/`prefers-contrast` rules to cover `.progress-bar`/`.modal`/`.toast`/`.skeleton`, which weren't in
+the original 5-selector placeholder set. Two real token gaps found and fixed properly rather than worked
+around: Modal's exact sizes (28/36/48rem) and its 85vh body-scroll cap aren't expressible via the §2.4 spacing
+scale, so `tailwind.config.js` gained named `maxWidth`/`maxHeight` tokens (`modal-sm/md/lg`, `modal`) rather
+than an arbitrary-value bracket. `SessionWarning` is a self-contained shell (events: `session-expiring`,
+`autosave-completed`, `autosave-failed`, `session-extended`, `retry-autosave`) — the actual autosave feature it
+integrates with doesn't exist yet (Stage 3+), and its full trigger-timing spec lives in the still-missing App
+Flow §3.6 (see "Naming trap" below), so its 120-second warning lead time is this component's own reasonable
+default, not doc-mandated. A local-only `/dev/components` preview route (registered only under
+`app()->environment('local')`) exercises every component together — rendering it end-to-end (not just the 102
+unit-style Blade/Livewire tests) caught a real bug TDD alone missed: `<x-error-summary>` checked
+`$errors instanceof MessageBag`, but Blade's real `$errors` is a `ViewErrorBag` *wrapping* a MessageBag, not one
+itself — the mismatch silently produced garbage output only visible once actually rendered in a real request
+context, not through a hand-constructed `MessageBag` in a test. S2.9 audited
 every append-only trigger and `CHECK` constraint Backend_schema.md specifies for tables built so far (§4.x,
 §7, §8.1) against what S2.1–S2.8 had actually shipped — each table added its own constraints as it was built,
 so the audit found every one already in place (`audit_logs`' pair from S2.8 is the only append-only trigger
