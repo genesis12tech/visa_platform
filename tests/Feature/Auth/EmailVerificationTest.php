@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Support\Facades\Artisan;
@@ -72,6 +73,25 @@ test('visiting the verify link again once already verified redirects without rea
 
     $response->assertRedirect('/');
     Event::assertNotDispatched(Verified::class);
+});
+
+test('verifying writes a user.email_verified audit log entry naming the user as actor', function () {
+    Artisan::call('db:seed', ['--class' => 'Database\\Seeders\\RolePermissionSeeder']);
+    $user = User::factory()->unverified()->create();
+
+    $url = URL::temporarySignedRoute(
+        'verification.verify',
+        now()->addMinutes(60),
+        ['id' => $user->id, 'hash' => sha1($user->email)]
+    );
+
+    $this->actingAs($user, 'web')->get($url);
+
+    $log = AuditLog::query()->where('action', 'user.email_verified')->latest('id')->first();
+
+    expect($log)->not->toBeNull()
+        ->and($log->actor_user_id)->toBe($user->id)
+        ->and($log->auditable_id)->toBe($user->id);
 });
 
 test('an unauthenticated visitor cannot verify without logging in first', function () {

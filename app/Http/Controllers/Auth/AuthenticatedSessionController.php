@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\LoginAttempt;
 use App\Models\User;
+use App\Support\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -32,6 +33,8 @@ class AuthenticatedSessionController extends Controller
         'agent' => 'agent',
         'staff' => 'staff',
     ];
+
+    public function __construct(private readonly AuditLogger $auditLogger) {}
 
     public function create(string $guard = 'web'): View
     {
@@ -90,6 +93,8 @@ class AuthenticatedSessionController extends Controller
             'last_login_at' => now(),
             'last_login_ip' => $request->ip(),
         ])->save();
+
+        $this->auditLogger->log('auth.login', ['actor' => $user, 'metadata' => ['guard' => $guard]]);
 
         return redirect()->intended('/');
     }

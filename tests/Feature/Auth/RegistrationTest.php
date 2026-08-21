@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Event;
@@ -78,6 +79,23 @@ test('password confirmation must match', function () {
     ]);
 
     $response->assertSessionHasErrors('password');
+});
+
+test('registering a new user writes a user.registered audit log entry naming that user as actor', function () {
+    $this->post('/register', [
+        'name' => 'Priya Sharma',
+        'email' => 'priya@example.com',
+        'password' => 'a-secure-password',
+        'password_confirmation' => 'a-secure-password',
+    ]);
+
+    $user = User::query()->where('email', 'priya@example.com')->first();
+    $log = AuditLog::query()->where('action', 'user.registered')->latest('id')->first();
+
+    expect($log)->not->toBeNull()
+        ->and($log->actor_user_id)->toBe($user->id)
+        ->and($log->auditable_type)->toBe(User::class)
+        ->and($log->auditable_id)->toBe($user->id);
 });
 
 test('password must be at least 8 characters', function () {

@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use App\Models\Concerns\HasUlid;
 use Illuminate\Database\Eloquent\Model;
 
 class DocumentType extends Model
 {
-    use HasUlid;
+    use Auditable, HasUlid;
 
     protected $attributes = [
         'max_size_bytes' => 10_485_760,

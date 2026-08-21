@@ -8,7 +8,21 @@ Visa Application System (VAS) — a government/embassy platform for visa intake,
 payment, appointment booking, officer review, and decisions, with full audit and legal defensibility as
 first-class requirements. Applicant, agent, officer, and admin portals; public tracking; Stripe payments.
 
-**Current state: Stage 1 complete and deployed, Stage 2 (Foundation) in progress — S2.1–S2.7 done.** S2.6 added
+**Current state: Stage 1 complete and deployed, Stage 2 (Foundation) in progress — S2.1–S2.8 done.** S2.8 added
+append-only audit logging: `audit_logs` (Backend_schema.md §4.12) with `trg_audit_logs_no_update`/
+`trg_audit_logs_no_delete` as the real enforcement (a raw `DB::table()` update/delete throws `QueryException`;
+Eloquent-layer immutability would not be a real guarantee). `App\Support\AuditLogger` writes rows — actor
+resolved across all three guards (or passed explicitly, e.g. at registration before login completes),
+`on_behalf_of` for agent actions (FR-AG-05), IP/user-agent from the current request, before/after via
+`old_values`/`new_values`. **Deliberately placed outside `app/Services/`**, not as a seventh approved service —
+Implementation_plan.md's S2.8 text calls it "the `AuditLogger` service," but the six-service cap in this file is
+closed by design (see below); asked the user, who chose `app/Support/AuditLogger.php` over expanding the cap,
+consistent with how S2.7 kept MFA logic out of `app/Services/` for the identical reason. Wired into the three
+auth completion points (`user.registered`, `user.email_verified`, `auth.login` — logged from both
+`AuthenticatedSessionController` and `MfaChallengeController`, since staff logins complete at the MFA step, not
+the password step) and, via a new `App\Models\Concerns\Auditable` trait's `created`/`updated`/`deleted` hooks,
+into all nine reference-data models — so fee/config changes get a compliance trail automatically once an admin
+CRUD screen exists to make one, without that screen needing to remember to call `AuditLogger` itself. S2.6 added
 three session guards (web/agent/staff) each with their own cookie name and domain-based routing, registration +
 email verification, rate-limited login with full `login_attempts` recording, and password reset — all
 non-enumerating (PUB-05-style) where applicable. S2.7 added mandatory TOTP-based MFA for staff (enrolment with

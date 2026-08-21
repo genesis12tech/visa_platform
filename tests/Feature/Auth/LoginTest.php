@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AuditLog;
 use App\Models\LoginAttempt;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
@@ -35,6 +36,19 @@ test('correct credentials for an active, verified user log them in on the web gu
     expect($attempt->successful)->toBeTrue()
         ->and($attempt->user_id)->toBe($user->id)
         ->and($user->fresh()->last_login_at)->not->toBeNull();
+});
+
+test('a successful login writes an auth.login audit log entry, a failed attempt does not', function () {
+    $user = makeActiveUser(['email' => 'priya@example.com']);
+
+    $this->post('/login', ['email' => 'priya@example.com', 'password' => 'wrong-password']);
+    expect(AuditLog::query()->where('action', 'auth.login')->count())->toBe(0);
+
+    $this->post('/login', ['email' => 'priya@example.com', 'password' => 'correct-password']);
+
+    $log = AuditLog::query()->where('action', 'auth.login')->latest('id')->first();
+    expect($log)->not->toBeNull()
+        ->and($log->actor_user_id)->toBe($user->id);
 });
 
 test('an unknown email and a wrong password produce the identical generic failure message', function () {

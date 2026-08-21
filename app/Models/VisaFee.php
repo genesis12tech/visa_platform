@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use App\Casts\MoneyCast;
+use App\Models\Concerns\Auditable;
 use App\Models\Concerns\HasUlid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class VisaFee extends Model
 {
-    use HasUlid;
+    use Auditable, HasUlid;
 
     protected $attributes = [
         'service_fee_minor' => 0,

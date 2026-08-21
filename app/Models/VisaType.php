@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use App\Models\Concerns\HasUlid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class VisaType extends Model
 {
-    use HasUlid;
+    use Auditable, HasUlid;
 
     protected $attributes = [
         'sla_business_hours' => 240,

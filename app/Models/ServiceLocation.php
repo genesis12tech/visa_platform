@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use App\Models\Concerns\HasUlid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ServiceLocation extends Model
 {
-    use HasUlid;
+    use Auditable, HasUlid;
 
     protected $attributes = [
         'is_active' => true,

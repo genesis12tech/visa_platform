@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RegisterUserRequest;
 use App\Models\User;
+use App\Support\AuditLogger;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -12,6 +13,8 @@ use Illuminate\View\View;
 
 class RegisteredUserController extends Controller
 {
+    public function __construct(private readonly AuditLogger $auditLogger) {}
+
     public function create(): View
     {
         return view('auth.register');
@@ -38,6 +41,8 @@ class RegisteredUserController extends Controller
                 'email' => $request->string('email'),
                 'password' => $request->string('password'),
             ]);
+
+            $this->auditLogger->log('user.registered', ['actor' => $user, 'auditable' => $user]);
 
             event(new Registered($user));
 

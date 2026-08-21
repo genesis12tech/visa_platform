@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AuditLog;
 use App\Models\MfaRecoveryCode;
 use App\Models\Staff;
 use App\Models\User;
@@ -80,6 +81,20 @@ test('a valid unused recovery code completes the login and is marked used, singl
 
     $replay->assertSessionHasErrors('code');
     $this->assertGuest('staff');
+});
+
+test('completing the challenge writes an auth.login audit log entry, not the earlier password step', function () {
+    [$user, $secret] = makeEnrolledStaffUser();
+    $google2fa = new Google2FA;
+
+    $this->post('http://'.config('app.staff_domain').'/login', ['email' => 'chen@example.com', 'password' => 'correct-password']);
+    expect(AuditLog::query()->where('action', 'auth.login')->count())->toBe(0);
+
+    $this->post(route('staff.mfa.challenge.store'), ['code' => $google2fa->getCurrentOtp($secret)]);
+
+    $log = AuditLog::query()->where('action', 'auth.login')->latest('id')->first();
+    expect($log)->not->toBeNull()
+        ->and($log->actor_user_id)->toBe($user->id);
 });
 
 test('an incorrect code does not complete the login', function () {

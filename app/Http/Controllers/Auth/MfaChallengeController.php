@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Staff;
 use App\Notifications\MfaChallengeLocked;
+use App\Support\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,7 +27,10 @@ class MfaChallengeController extends Controller
 
     private const DECAY_SECONDS = 900;
 
-    public function __construct(private readonly Google2FA $google2fa) {}
+    public function __construct(
+        private readonly Google2FA $google2fa,
+        private readonly AuditLogger $auditLogger,
+    ) {}
 
     public function create(Request $request): View|RedirectResponse
     {
@@ -78,6 +82,8 @@ class MfaChallengeController extends Controller
             'last_login_at' => now(),
             'last_login_ip' => $request->ip(),
         ])->save();
+
+        $this->auditLogger->log('auth.login', ['actor' => $user, 'metadata' => ['guard' => 'staff']]);
 
         return redirect()->intended('/');
     }
