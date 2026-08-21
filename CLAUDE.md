@@ -8,7 +8,19 @@ Visa Application System (VAS) — a government/embassy platform for visa intake,
 payment, appointment booking, officer review, and decisions, with full audit and legal defensibility as
 first-class requirements. Applicant, agent, officer, and admin portals; public tracking; Stripe payments.
 
-**Current state: Stage 1 complete and deployed, Stage 2 (Foundation) in progress — S2.1–S2.8 done.** S2.8 added
+**Current state: Stage 1 complete and deployed, Stage 2 (Foundation) in progress — S2.1–S2.9 done.** S2.9 audited
+every append-only trigger and `CHECK` constraint Backend_schema.md specifies for tables built so far (§4.x,
+§7, §8.1) against what S2.1–S2.8 had actually shipped — each table added its own constraints as it was built,
+so the audit found every one already in place (`audit_logs`' pair from S2.8 is the only append-only trigger
+that currently applies; the other four append-only tables in §8.1 don't exist until Stage 3+). The one real gap
+was the MySQL-version migration guard §7 calls for (`SELECT VERSION()`, abort below 8.0.16 — below that,
+`CHECK` parses and is silently ignored, the worst possible failure mode). Built as
+`App\Support\Concerns\EnsuresCheckConstraintSupport` (MariaDB always passes, matching
+`tests/Pest.php`'s `databaseEnforcesCheckConstraints()` logic) and retrofitted into all nine existing
+`CHECK`-adding migrations. Also added `database/migrations` to `phpstan.neon`'s analysed paths — it had been
+`app`-only, which is why Larastan couldn't see the trait was used and flagged it as dead code; broadening the
+scope was the real fix, not a suppression, and now gives migrations the same static analysis coverage as the
+rest of the app. S2.8 added
 append-only audit logging: `audit_logs` (Backend_schema.md §4.12) with `trg_audit_logs_no_update`/
 `trg_audit_logs_no_delete` as the real enforcement (a raw `DB::table()` update/delete throws `QueryException`;
 Eloquent-layer immutability would not be a real guarantee). `App\Support\AuditLogger` writes rows — actor

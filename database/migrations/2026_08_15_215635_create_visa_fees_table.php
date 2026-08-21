@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Concerns\EnsuresCheckConstraintSupport;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -7,6 +8,8 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    use EnsuresCheckConstraintSupport;
+
     public function up(): void
     {
         Schema::create('visa_fees', function (Blueprint $table) {
@@ -29,6 +32,8 @@ return new class extends Migration
                 'idx_fees_resolution'
             );
         });
+
+        $this->ensureCheckConstraintsSupported();
 
         DB::statement('ALTER TABLE visa_fees ADD CONSTRAINT chk_fees_nonneg CHECK (base_fee_minor >= 0 AND service_fee_minor >= 0 AND priority_fee_minor >= 0 AND tax_minor >= 0)');
         DB::statement('ALTER TABLE visa_fees ADD CONSTRAINT chk_fees_window CHECK (valid_until IS NULL OR valid_until > valid_from)');

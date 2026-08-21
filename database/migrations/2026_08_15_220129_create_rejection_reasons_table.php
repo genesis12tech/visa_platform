@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Concerns\EnsuresCheckConstraintSupport;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -7,6 +8,8 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    use EnsuresCheckConstraintSupport;
+
     public function up(): void
     {
         Schema::create('rejection_reasons', function (Blueprint $table) {
@@ -20,6 +23,8 @@ return new class extends Migration
 
             $table->unique(['scope', 'code'], 'uq_rejection_scope_code');
         });
+
+        $this->ensureCheckConstraintsSupported();
 
         DB::statement("ALTER TABLE rejection_reasons ADD CONSTRAINT chk_rejection_scope CHECK (scope IN ('document','decision'))");
     }

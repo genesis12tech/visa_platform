@@ -4,6 +4,7 @@ includes:
 parameters:
     paths:
         - app
+        - database/migrations
 
     level: 6
 

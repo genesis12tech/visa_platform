@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Concerns\EnsuresCheckConstraintSupport;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -7,6 +8,8 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    use EnsuresCheckConstraintSupport;
+
     /**
      * Run the migrations.
      */
@@ -37,6 +40,8 @@ return new class extends Migration
             $table->index(['status', 'user_type'], 'idx_users_status_type');
             $table->index('last_login_at', 'idx_users_last_login');
         });
+
+        $this->ensureCheckConstraintsSupported();
 
         DB::statement("ALTER TABLE users ADD CONSTRAINT chk_users_status CHECK (status IN ('pending','active','suspended'))");
         DB::statement("ALTER TABLE users ADD CONSTRAINT chk_users_type CHECK (user_type IN ('applicant','agent','staff'))");

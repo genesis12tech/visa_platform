@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Concerns\EnsuresCheckConstraintSupport;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -7,6 +8,8 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    use EnsuresCheckConstraintSupport;
+
     public function up(): void
     {
         Schema::create('applicant_profiles', function (Blueprint $table) {
@@ -43,6 +46,8 @@ return new class extends Migration
             $table->index('nationality_country_id', 'idx_profiles_nationality');
             $table->index('date_of_birth', 'idx_profiles_dob');
         });
+
+        $this->ensureCheckConstraintsSupported();
 
         DB::statement('ALTER TABLE applicant_profiles ADD CONSTRAINT chk_profiles_passport_dates CHECK (passport_issued_at IS NULL OR passport_expires_at IS NULL OR passport_expires_at > passport_issued_at)');
     }

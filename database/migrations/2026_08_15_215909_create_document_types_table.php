@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Concerns\EnsuresCheckConstraintSupport;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -7,6 +8,8 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    use EnsuresCheckConstraintSupport;
+
     public function up(): void
     {
         Schema::create('document_types', function (Blueprint $table) {
@@ -24,6 +27,8 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
+
+        $this->ensureCheckConstraintsSupported();
 
         DB::statement('ALTER TABLE document_types ADD CONSTRAINT chk_doc_types_size CHECK (max_size_bytes BETWEEN 1024 AND 52428800)');
     }

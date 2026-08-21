@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Concerns\EnsuresCheckConstraintSupport;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -7,6 +8,8 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    use EnsuresCheckConstraintSupport;
+
     public function up(): void
     {
         Schema::create('currencies', function (Blueprint $table) {
@@ -17,6 +20,8 @@ return new class extends Migration
             $table->unsignedTinyInteger('minor_unit_exponent')->default(2);
             $table->boolean('is_active')->default(true);
         });
+
+        $this->ensureCheckConstraintsSupported();
 
         DB::statement('ALTER TABLE currencies ADD CONSTRAINT chk_currencies_exponent CHECK (minor_unit_exponent <= 4)');
     }

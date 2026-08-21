@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Concerns\EnsuresCheckConstraintSupport;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -7,6 +8,8 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    use EnsuresCheckConstraintSupport;
+
     public function up(): void
     {
         Schema::create('login_attempts', function (Blueprint $table) {
@@ -24,6 +27,8 @@ return new class extends Migration
             $table->index(['ip_address', 'created_at'], 'idx_login_ip_time');
             $table->index(['user_id', 'created_at'], 'idx_login_user_time');
         });
+
+        $this->ensureCheckConstraintsSupported();
 
         // Backend_schema.md's own CHECK wording omits `failure_reason IS NOT NULL` on the
         // second branch. Under SQL's three-valued logic, `NULL IN (...)` evaluates to NULL
