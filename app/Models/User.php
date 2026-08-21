@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Casts\IpAddressCast;
 use App\Models\Concerns\HasUlid;
+use App\Notifications\ResetPasswordNotification;
+use App\Notifications\VerifyEmailNotification;
 use Database\Factories\UserFactory;
 use Illuminate\Auth\MustVerifyEmail;
 use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
@@ -14,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\URL;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements MustVerifyEmailContract
@@ -111,6 +114,55 @@ class User extends Authenticatable implements MustVerifyEmailContract
     public function mfaRecoveryCodes(): HasMany
     {
         return $this->hasMany(MfaRecoveryCode::class, 'user_id');
+    }
+
+    /**
+     * Password reset spans all three guards, each on its own host with its
+     * own named route (routes/web.php, routes/agent.php, routes/staff.php)
+     * — mirrors NewPasswordController's BROKER_LOGIN_ROUTES, keyed by the
+     * runtime subclass since that's what Password::broker() resolves
+     * $notifiable as.
+     */
+    private const PASSWORD_RESET_ROUTES = [
+        Agent::class => 'agent.password.reset',
+        Staff::class => 'staff.password.reset',
+    ];
+
+    /**
+     * Replaces Laravel's default VerifyEmail notification (S2.11) —
+     * App\Notifications\VerifyEmailNotification pulls its actual subject/
+     * body from notification_templates instead of a hard-coded string.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        $verificationUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addMinutes(config('auth.verification.expire', 60)),
+            ['id' => $this->getKey(), 'hash' => sha1($this->getEmailForVerification())]
+        );
+
+        $this->notify(new VerifyEmailNotification($verificationUrl));
+    }
+
+    /**
+     * Replaces Laravel's default ResetPassword notification (S2.11). The
+     * URL is built here — during the original HTTP request, on whichever
+     * guard's host actually issued it — never inside the notification
+     * itself, which runs later in a queue worker with no request to infer
+     * the correct host from.
+     *
+     * @param  string  $token
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $routeName = self::PASSWORD_RESET_ROUTES[static::class] ?? 'password.reset';
+
+        $resetUrl = url(route($routeName, [
+            'token' => $token,
+            'email' => $this->getEmailForPasswordReset(),
+        ], false));
+
+        $this->notify(new ResetPasswordNotification($resetUrl));
     }
 
     /**

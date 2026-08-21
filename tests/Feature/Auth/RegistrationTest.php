@@ -2,9 +2,11 @@
 
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Notifications\VerifyEmailNotification;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 
 test('a new email registers a pending applicant, logs them in, and dispatches Registered', function () {
     Event::fake([Registered::class]);
@@ -31,6 +33,7 @@ test('a new email registers a pending applicant, logs them in, and dispatches Re
 
 test('registering with an email that already exists resends verification but never reveals the account exists', function () {
     Event::fake([Registered::class]);
+    Notification::fake();
     $existing = User::factory()->unverified()->create(['email' => 'existing@example.com']);
 
     $response = $this->post('/register', [
@@ -47,6 +50,7 @@ test('registering with an email that already exists resends verification but nev
 
     $fresh = $existing->fresh();
     expect($fresh->name)->toBe($existing->name); // the original account's name is untouched, not overwritten
+    Notification::assertSentTo($fresh, VerifyEmailNotification::class);
 });
 
 test('registering with an email belonging to an already-verified user does not disturb that account', function () {

@@ -2,9 +2,11 @@
 
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Notifications\VerifyEmailNotification;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 
 test('a valid signed link verifies the email, activates the account, and assigns the applicant role', function () {
@@ -109,10 +111,12 @@ test('an unauthenticated visitor cannot verify without logging in first', functi
 });
 
 test('the resend endpoint sends a new verification notification for an unverified user', function () {
+    Notification::fake();
     $user = User::factory()->unverified()->create();
 
     $response = $this->actingAs($user, 'web')->post(route('verification.send'));
 
     $response->assertRedirect();
     $response->assertSessionHas('status', 'verification-link-sent');
+    Notification::assertSentTo($user, VerifyEmailNotification::class);
 });

@@ -132,7 +132,17 @@ reviewing the saved job list, not assumed correct. Two jobs, both `* * * * *`:
 | | Command (after the fixed `/usr/bin/php /home/u508116592/` prefix) |
 |---|---|
 | Scheduler | `domains/geninnovations.net/public_html/visa/artisan schedule:run` |
-| Queue worker | `domains/geninnovations.net/public_html/visa/artisan queue:work --stop-when-empty --max-time=50` |
+| Queue worker | `domains/geninnovations.net/public_html/visa/artisan queue:work --queue=emails,default --stop-when-empty --max-time=50` |
+
+**Updated 2026-08-22 (S2.11):** every real notification now routes to a queue literally named
+`emails` (`App\Notifications\TemplatedNotification`'s constructor calls `onQueue('emails')`), not
+Laravel's implicit `default` queue. `queue:work` without an explicit `--queue=` flag only drains
+`default` — so **the saved hPanel cron job for the queue worker must be updated to add
+`--queue=emails,default`**, or every notification dispatched from this point on sits in the `jobs`
+table forever, never processed. Hostinger has no `crontab` CLI on this host (see above), so this can
+only be changed through hPanel's cron job editor by hand — not something a deploy step can apply
+automatically. `default` is kept alongside `emails` since nothing currently distinguishes the two in
+practice, but the explicit list means a future queue name doesn't silently go undrained either.
 
 **Verified 2026-08-20**: dispatched a job from a real file (`dispatch_test.php`, deleted after — see the
 closure-serialization note in §8 on why `tinker --execute` doesn't work for this), confirmed a cache key it

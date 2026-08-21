@@ -1,9 +1,10 @@
 <?php
 
 use App\Models\Applicant;
+use App\Models\Staff;
 use App\Models\User;
 use App\Notifications\PasswordWasReset;
-use Illuminate\Auth\Notifications\ResetPassword;
+use App\Notifications\ResetPasswordNotification;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
@@ -24,7 +25,24 @@ test('requesting a reset link for a known email queues the reset notification', 
     // Password::broker('applicants') resolves users through the Applicant
     // scoped model, not User directly — Notification::fake() buckets by
     // exact class, so the assertion must match that concrete class.
-    Notification::assertSentTo(Applicant::query()->find($user->id), ResetPassword::class);
+    Notification::assertSentTo(Applicant::query()->find($user->id), ResetPasswordNotification::class);
+});
+
+test('the reset url is built for the guard\'s own host, not the primary domain — it is not resolvable later inside a queue worker', function () {
+    Notification::fake();
+    $staff = User::factory()->create(['email' => 'chen@example.com', 'user_type' => 'staff']);
+
+    $this->post('http://'.config('app.staff_domain').'/forgot-password', ['email' => 'chen@example.com']);
+
+    Notification::assertSentTo(
+        Staff::query()->find($staff->id),
+        ResetPasswordNotification::class,
+        function (ResetPasswordNotification $notification) use ($staff) {
+            $resetUrl = $notification->data($staff)['reset_url'];
+
+            return str_starts_with($resetUrl, 'http://'.config('app.staff_domain').'/reset-password/');
+        }
+    );
 });
 
 test('requesting a reset link for an unknown email responds identically without sending anything', function () {
@@ -68,6 +86,7 @@ test('an invalid token is rejected and the password is not changed', function ()
 });
 
 test('a used token cannot be replayed to reset the password twice', function () {
+    Notification::fake();
     $user = User::factory()->create(['email' => 'priya@example.com', 'password' => Hash::make('old-password')]);
     $token = Password::broker('applicants')->createToken($user);
 

@@ -8,7 +8,31 @@ Visa Application System (VAS) — a government/embassy platform for visa intake,
 payment, appointment booking, officer review, and decisions, with full audit and legal defensibility as
 first-class requirements. Applicant, agent, officer, and admin portals; public tracking; Stripe payments.
 
-**Current state: Stage 1 complete and deployed, Stage 2 (Foundation) in progress — S2.1–S2.10 done.** S2.10 built
+**Current state: Stage 1 complete and deployed, Stage 2 (Foundation) in progress — S2.1–S2.11 done.** S2.11 built
+the notification spine (Backend_schema.md §4.10): `notifications` (Laravel's UUID database-channel table, hand-
+built to match the schema's exact composite index — `->morphs()` would only have covered
+`notifiable_type`/`notifiable_id`, not the `read_at` the "unread" query needs) and `notification_templates`
+(`event_key`/`locale`/`channel`/`subject`/`body`, admin-editable so copy changes don't need a deploy).
+`App\Notifications\TemplatedNotification` is the abstract base every real notification now extends: `via()`
+defaults to `['mail', 'database']`, routes to a queue literally named `emails`, and resolves its content from
+`NotificationTemplate::resolve($eventKey, 'mail', $locale)` — **throwing rather than ever silently falling back
+to a hard-coded string** when no active row matches, the same stance as `FeeResolver`'s exceptions. Neither
+`notifications.application_id` nor `audit_logs.application_id` carry their schema's FK yet — both wait on
+`visa_applications` (Stage 3). Two of Laravel's own default notifications were replaced with project-owned
+equivalents wired through `User::sendEmailVerificationNotification()`/`sendPasswordResetNotification()`:
+`VerifyEmailNotification` and `ResetPasswordNotification`, both computing their signed/reset URL **eagerly, in
+the original HTTP request**, not lazily inside the notification (which runs later in a queue worker with no
+request to infer the correct host from — genuinely load-bearing for password reset, which spans three
+guard-specific domains; accidentally masked for email verification, which only ever needs the single
+applicant/web domain). The two pre-existing notifications (`PasswordWasReset`, `MfaChallengeLocked`) were
+upgraded onto the same base class. **Real bug caught by the test suite itself, not written into it
+deliberately**: two existing Auth tests that didn't call `Notification::fake()` started failing once real
+sends required a seeded template — they were relying on Laravel's default notifications' zero-configuration
+`toMail()` never having anything to fail on; fixed by faking notifications in both, which is what those tests
+should have done for isolation regardless. The production `queue:work` cron job **must be updated by hand in
+hPanel** to add `--queue=emails,default` (no `crontab` CLI on this host) — the flag ships in
+`docs/Deployment_runbook.md` but nothing can apply it automatically; until that's done, every notification
+dispatched from now on sits in the `jobs` table unprocessed. S2.10 built
 the Blade/Livewire design-system component library (Content_guidelines.md §5): `icon` (self-hosted Heroicons
 2.x via blade-heroicons — a transitive dependency of `rappasoft/laravel-livewire-tables`, not a project-level
 install; its own generic `<x-icon>` tag had to be disabled in `config/blade-icons.php` to free that exact name

@@ -2,34 +2,21 @@
 
 namespace App\Notifications;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
-
 /**
  * FR-ID-11: the account owner is notified when their password is reset —
- * distinct from the reset-link email itself (Illuminate\Auth\Notifications\ResetPassword),
+ * distinct from the reset-link email itself (ResetPasswordNotification),
  * which goes out before the change; this confirms after it happened, so a
  * password reset the owner didn't request is visible to them either way.
  */
-class PasswordWasReset extends Notification implements ShouldQueue
+class PasswordWasReset extends TemplatedNotification
 {
-    use Queueable;
-
-    /**
-     * @return array<int, string>
-     */
-    public function via(object $notifiable): array
+    public function eventKey(): string
     {
-        return ['mail'];
+        return 'user.password_was_reset';
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function data(object $notifiable): array
     {
-        return (new MailMessage)
-            ->subject('Your password has been changed')
-            ->line('This is a confirmation that your password was just changed.')
-            ->line('If you did not make this change, contact support immediately.');
+        return [];
     }
 }

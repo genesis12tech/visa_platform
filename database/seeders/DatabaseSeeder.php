@@ -17,5 +17,6 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(ReferenceDataSeeder::class);
         $this->call(RolePermissionSeeder::class);
+        $this->call(NotificationTemplateSeeder::class);
     }
 }
